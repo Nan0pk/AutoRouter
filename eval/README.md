@@ -11,13 +11,32 @@ Until a **measured** run exists, that claim is unvalidated. See "Status" below.
 
 | Arm | Model | Behaviour |
 |---|---|---|
-| `fixed_workhorse` | `opencode-go/deepseek-v4.1-flash` (T2) | one model for every task, no escalation |
-| `fixed_strong` | `opencode-go/gemini-4-argon` (T5) | one model for every task, no escalation |
+| `fixed_workhorse` | `opencode-go/deepseek-v4.1-flash` (T2) | one model for every task, one attempt |
+| `fixed_workhorse_retry` | same T2 model | one attempt, then **one retry on the same model** if the checks fail |
+| `fixed_strong` | `opencode-go/gemini-4-argon` (T5) | one model for every task, one attempt |
 | `autorouter` | per-task | runs `scripts/classify.py`, picks a tier, escalates once to T5 when the gate allows delegation and the checks fail |
 
-The two fixed arms differ **only** in model. The AutoRouter arm differs in model choice and in
-being allowed one escalation, so the comparison answers "is routing worth its overhead?" rather
-than "is the frontier model better?".
+The fixed arms differ **only** in model and retry policy. `fixed_workhorse_retry` exists so the
+benefit of *routing* can be separated from the benefit of a *second attempt*: without it, any
+AutoRouter gain could be explained by "it got to try twice". Compare `autorouter` against
+`fixed_workhorse_retry`, not only against `fixed_workhorse`.
+
+## Validity (fail closed)
+
+A report is evidence only when **every task executed and returned usable usage data**. The
+executor name is not evidence: `--executor command` does not make a run valid.
+
+| Situation | Recorded as | Effect on the report |
+|---|---|---|
+| Non-zero exit, timeout, no JSON on stdout | `infrastructure_error` | excluded from scoring; `valid_evidence: false`; listed under "adapter errors" |
+| Missing, zero, negative or non-integer `tokens_in`/`tokens_out` | `infrastructure_error` | same |
+| Assertions fail after a clean run | `model_failure` | counted in the success rate; listed under "failure cases" |
+| Checks pass | `success` | counted |
+
+An adapter error is **never retried** (that would hide the fault) and **never counted as a model
+failure** (that would make a broken adapter look like a weak model). Success rates use the number
+of tasks actually scored, and `success_rate_of_all_tasks` is reported beside it so the exclusion
+is visible rather than flattering.
 
 ## Success metric
 
@@ -37,8 +56,8 @@ and `compiles` over the task's fixture files; they never execute model output.
 | Cost (USD) | measured `tokens_in` / `tokens_out` × pinned prices, with the cache model from `pins.json` (cache hits billed at `cache_read_cost`, misses at `cache_write_cost`) |
 | Quota | attempts per model / that model's `req_per_month`, and the max share of any monthly allowance |
 | Latency | wall clock per attempt (executor-reported or measured), plus gate time |
-| Retries | a second attempt on the same task |
-| Escalations | a second attempt on a **higher** tier |
+| Retries | harness-driven second attempts **plus** executor-reported retries, reported separately |
+| Escalations | a second attempt on a **higher** tier (harness) plus executor-reported escalations |
 | Routing overhead | measured wall time of the `classify.py` call, reported separately from task latency |
 | Failure cases | every failed task per arm, with the exact checks that failed and the gate decision |
 
@@ -91,7 +110,9 @@ sample per task; variance is a known gap, see below), and record any prompt/temp
 
 ## Status
 
-**No measured run is committed.** `eval/results/` is empty on purpose.
+**No measured run is committed.** `eval/results/` is empty on purpose. A real run must pass the
+validity rules above before anyone may cite it; a report with any adapter error is stamped
+`INVALID RUN` and `valid_evidence: false`.
 
 Why the stub numbers are not evidence: `--executor stub` applies canned patches and canned token
 and latency figures (`pins.json → stub`). It encodes the hypothesis — which model *would* solve
@@ -116,3 +137,6 @@ the instrument, not the measurement.
   measured here.
 - **The gate is the router's weak point.** Two debugging prompts route to T1/T2 and fail in the
   AutoRouter arm, which is exactly the under-routing the calibration set tries to bound.
+- **Adaptive retries can hide work.** The harness records executor-reported retries and
+  escalations, but cannot verify them; an adapter that silently retries internally will look
+  cheaper than it is unless it reports honestly.

@@ -2,17 +2,23 @@
 """Evaluation harness: fixed-workhorse vs fixed-strong vs AutoRouter.
 
 The point is to make the routing claim testable, not to assert it. This script
-runs the same task set through three arms, verifies declarative checks, and
+runs the same task set through the arms, verifies declarative checks, and
 reports success, cost/quota, latency, retries/escalations and routing overhead
 side by side -- including the tasks each arm failed.
+
+Fail closed
+-----------
+A run is **only** valid evidence when every task actually executed and
+returned usable usage data. Adapter failures are recorded as
+`infrastructure_error` and **never** counted as model failures, and any such
+failure makes the whole report `valid_evidence: false`. The executor name is
+not evidence: `--executor command` does not imply a valid run.
 
 Executors
 ---------
 stub     Deterministic, synthetic. Applies canned patches and canned token and
          latency figures. It exists to test the harness in CI. Its results
-         encode assumptions, so they are NOT evidence: every stub report is
-         stamped "synthetic": true / "valid_evidence": false, and writing one
-         into eval/results/ is refused.
+         encode assumptions, so they are NOT evidence.
 command  The real path. Runs one command per attempt with the prompt on stdin:
 
              AUTOROUTER_MODEL=provider/model \
@@ -20,14 +26,25 @@ command  The real path. Runs one command per attempt with the prompt on stdin:
              AUTOROUTER_WORKDIR=/tmp/... \
              $AUTOROUTER_EVAL_CMD
 
-         The command edits files in its working directory and prints a JSON
-         object on stdout:
+         The command edits files in its working directory and must print one
+         JSON object on stdout:
 
              {"tokens_in": 8123, "tokens_out": 640, "latency_ms": 9100,
               "retries": 0, "escalations": 0, "trace": ["provider/model"]}
 
-         The harness verifies the files afterwards; it never executes model
-         output.
+         Missing/zero usage, a non-zero exit, or unparseable stdout is an
+         infrastructure error. The harness verifies the files afterwards; it
+         never executes model output.
+
+Arms
+----
+    fixed_workhorse        T2, one attempt
+    fixed_workhorse_retry  T2, one retry on the same model (no escalation)
+    fixed_strong           T5, one attempt
+    autorouter             gate-chosen tier, one escalation when the gate allows
+
+`fixed_workhorse_retry` exists so the benefit of *routing* can be separated
+from the benefit of a *second attempt*.
 
 Usage
 -----
@@ -54,12 +71,16 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from score_models import request_cost  # noqa: E402
 
-ARMS = ("fixed_workhorse", "fixed_strong", "autorouter")
+ARMS = ("fixed_workhorse", "fixed_workhorse_retry", "fixed_strong", "autorouter")
+RETRY_ARMS = ("fixed_workhorse_retry", "autorouter")
 ARM_MODEL = {
     "fixed_workhorse": ("T2", "workhorse"),
+    "fixed_workhorse_retry": ("T2", "workhorse"),
     "fixed_strong": ("T5", "strong"),
 }
 EXECUTORS = ("stub", "command")
+
+OUTCOMES = ("success", "model_failure", "infrastructure_error")
 
 
 def load_json(path):
@@ -137,29 +158,63 @@ def verify(workdir, checks):
 # --------------------------------------------------------------------------- #
 # executors
 # --------------------------------------------------------------------------- #
+def _ok(tokens_in, tokens_out, latency_ms, retries, escalations, trace):
+    return {
+        "status": "ok",
+        "error": None,
+        "usage_valid": True,
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "latency_ms": latency_ms,
+        "reported_retries": retries,
+        "reported_escalations": escalations,
+        "trace": trace,
+    }
+
+
+def _adapter_error(message, latency_ms):
+    return {
+        "status": "error",
+        "error": message,
+        "usage_valid": False,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "latency_ms": latency_ms,
+        "reported_retries": 0,
+        "reported_escalations": 0,
+        "trace": [],
+    }
+
+
 def run_stub(task, role, pins, workdir):
     spec = pins["stub"]
     patch = load_json(EVAL / "stub_patches.json").get(task["id"], {})
-    applied = role in patch.get("solvable_by", [])
-    if applied:
+    if role in patch.get("solvable_by", []):
         for name, body in patch.get("files", {}).items():
             (Path(workdir) / name).write_text(body, encoding="utf-8")
     tokens = spec["tokens"][role]
-    return {
-        "applied": applied,
-        "tokens_in": tokens["in"],
-        "tokens_out": tokens["out"],
-        "latency_ms": spec["latency_ms"][role],
-        "retries": 0,
-        "escalations": 0,
-        "trace": [f"stub:{role}"],
-    }
+    return _ok(
+        tokens["in"],
+        tokens["out"],
+        spec["latency_ms"][role],
+        0,
+        0,
+        [f"stub:{role}"],
+    )
+
+
+def _valid_usage(payload):
+    ti, to = payload.get("tokens_in"), payload.get("tokens_out")
+    for value in (ti, to):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            return False
+    return (ti + to) > 0
 
 
 def run_command(task, role, model, pins, workdir):
     cmd = os.environ.get("AUTOROUTER_EVAL_CMD")
     if not cmd:
-        raise SystemExit("ERROR: --executor command needs AUTOROUTER_EVAL_CMD")
+        return _adapter_error("AUTOROUTER_EVAL_CMD is not set", 0)
     env = dict(os.environ)
     env.update(
         {
@@ -169,31 +224,49 @@ def run_command(task, role, model, pins, workdir):
         }
     )
     started = time.monotonic()
-    proc = subprocess.run(
-        cmd,
-        shell=True,
-        cwd=workdir,
-        env=env,
-        input=task["prompt"],
-        text=True,
-        capture_output=True,
-        timeout=pins["settings"]["timeout_s"],
-    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            shell=True,
+            cwd=workdir,
+            env=env,
+            input=task["prompt"],
+            text=True,
+            capture_output=True,
+            timeout=pins["settings"]["timeout_s"],
+        )
+    except subprocess.TimeoutExpired:
+        return _adapter_error(
+            f"adapter timed out after {pins['settings']['timeout_s']}s",
+            int((time.monotonic() - started) * 1000),
+        )
     latency_ms = int((time.monotonic() - started) * 1000)
+
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout or "").strip().splitlines()
+        tail = detail[-1][:300] if detail else ""
+        return _adapter_error(f"adapter exited {proc.returncode}: {tail}", latency_ms)
+
     try:
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
     except (ValueError, IndexError):
-        payload = {}
-    return {
-        "applied": proc.returncode == 0,
-        "tokens_in": int(payload.get("tokens_in") or 0),
-        "tokens_out": int(payload.get("tokens_out") or 0),
-        "latency_ms": int(payload.get("latency_ms") or latency_ms),
-        "retries": int(payload.get("retries") or 0),
-        "escalations": int(payload.get("escalations") or 0),
-        "trace": payload.get("trace") or [model],
-        "stderr": proc.stderr[-2000:] if proc.returncode else "",
-    }
+        return _adapter_error("adapter printed no JSON result on stdout", latency_ms)
+    if not isinstance(payload, dict):
+        return _adapter_error("adapter result is not a JSON object", latency_ms)
+    if not _valid_usage(payload):
+        return _adapter_error(
+            "adapter returned missing, non-integer or zero usage "
+            f"(tokens_in={payload.get('tokens_in')!r}, tokens_out={payload.get('tokens_out')!r})",
+            latency_ms,
+        )
+    return _ok(
+        payload["tokens_in"],
+        payload["tokens_out"],
+        int(payload.get("latency_ms") or latency_ms),
+        int(payload.get("retries") or 0),
+        int(payload.get("escalations") or 0),
+        payload.get("trace") or [model],
+    )
 
 
 def execute(executor, task, role, model, pins, workdir):
@@ -221,7 +294,7 @@ def gate(prompt):
 
 
 def route(prompt, pins):
-    """AutoRouter policy: gate, then pick a tier; complex work starts at T3 and may escalate."""
+    """Gate-based policy: pick a tier; complex work starts where the gate points."""
     decision, routing_ms = gate(prompt)
     tier = "T2"
     if decision["route"] == "main":
@@ -240,6 +313,29 @@ def route(prompt, pins):
         "escalate_to": "T5" if decision["delegate"] else None,
         "routing_ms": routing_ms,
     }
+
+
+def retry_plan(arm, failures, decision, pins):
+    """One retry, or none. Fixed arms exist so this is a controlled variable."""
+    if not failures or arm not in RETRY_ARMS:
+        return None
+    if arm == "fixed_workhorse_retry":
+        tier, role = ARM_MODEL["fixed_workhorse"]
+        return {
+            "model": pins["tiers"][tier]["model"],
+            "role": role,
+            "tier": tier,
+            "escalation": False,
+        }
+    if decision and decision["escalate_to"]:
+        tier = decision["escalate_to"]
+        return {
+            "model": pins["tiers"][tier]["model"],
+            "role": pins["tiers"][tier]["role"],
+            "tier": tier,
+            "escalation": True,
+        }
+    return None
 
 
 def price(model, tokens_in, tokens_out, pins):
@@ -276,43 +372,75 @@ def run_task(arm, task, executor, pins, keep=None):
 
     attempts = []
     retries = escalations = 0
+    adapter_error = None
 
     def attempt(model_id, role_name, tier_name):
         res = execute(executor, task, role_name, model_id, pins, workdir)
-        attempts.append({
-            "model": model_id,
-            "tier": tier_name,
-            "role": role_name,
-            "tokens_in": res["tokens_in"],
-            "tokens_out": res["tokens_out"],
-            "latency_ms": res["latency_ms"],
-        })
+        attempts.append(
+            {
+                "model": model_id,
+                "tier": tier_name,
+                "role": role_name,
+                "status": res["status"],
+                "error": res["error"],
+                "tokens_in": res["tokens_in"],
+                "tokens_out": res["tokens_out"],
+                "latency_ms": res["latency_ms"],
+                "reported_retries": res["reported_retries"],
+                "reported_escalations": res["reported_escalations"],
+                "trace": res["trace"],
+            }
+        )
+        return res
 
-    attempt(model, role, tier)
-    passed, failures = verify(workdir, task["checks"])
+    first = attempt(model, role, tier)
+    passed, failures = 0, []
 
-    # AutoRouter escalates once when its first pick fails and the gate said the
-    # task may delegate. Fixed arms never escalate -- that is the variable.
-    if arm == "autorouter" and failures and decision and decision["escalate_to"]:
-        retries += 1
-        esc = pins["tiers"][decision["escalate_to"]]
-        attempt(esc["model"], esc["role"], decision["escalate_to"])
-        escalations += 1
+    if first["status"] != "ok":
+        # Fail closed: a broken adapter is an infrastructure error, not a model
+        # failure, and it is never retried (that would hide it).
+        adapter_error = first["error"]
+        outcome = "infrastructure_error"
+    else:
         passed, failures = verify(workdir, task["checks"])
+        plan = retry_plan(arm, failures, decision, pins)
+        if plan:
+            retries += 1
+            second = attempt(plan["model"], plan["role"], plan["tier"])
+            if second["status"] != "ok":
+                adapter_error = second["error"]
+                outcome = "infrastructure_error"
+                failures = [f"retry adapter error: {second['error']}"]
+                passed = 0
+            else:
+                if plan["escalation"]:
+                    escalations += 1
+                passed, failures = verify(workdir, task["checks"])
+                outcome = "success" if not failures else "model_failure"
+        else:
+            outcome = "success" if not failures else "model_failure"
 
+    ok_attempts = [a for a in attempts if a["status"] == "ok"]
     tokens_in = sum(a["tokens_in"] for a in attempts)
     tokens_out = sum(a["tokens_out"] for a in attempts)
-    cost = sum(price(a["model"], a["tokens_in"], a["tokens_out"], pins) for a in attempts)
+    cost = sum(price(a["model"], a["tokens_in"], a["tokens_out"], pins) for a in ok_attempts)
     latency_ms = sum(a["latency_ms"] for a in attempts) + int(routing_ms)
+
+    # Executor-reported counts are kept alongside harness-driven ones so an
+    # adapter that retries internally cannot hide that work.
+    reported_retries = sum(a["reported_retries"] for a in attempts)
+    reported_escalations = sum(a["reported_escalations"] for a in attempts)
 
     record = {
         "task": task["id"],
         "category": task["category"],
         "arm": arm,
-        "success": not failures,
+        "outcome": outcome,
+        "success": outcome == "success",
         "checks_passed": passed,
         "checks_total": len(task["checks"]),
         "failures": failures,
+        "adapter_error": adapter_error,
         "model": model,
         "tier": tier,
         "attempts": attempts,
@@ -321,8 +449,12 @@ def run_task(arm, task, executor, pins, keep=None):
         "cost_usd": round(cost, 6),
         "latency_ms": latency_ms,
         "routing_ms": round(routing_ms, 2),
-        "retries": retries,
-        "escalations": escalations,
+        "retries": retries + reported_retries,
+        "escalations": escalations + reported_escalations,
+        "harness_retries": retries,
+        "harness_escalations": escalations,
+        "reported_retries": reported_retries,
+        "reported_escalations": reported_escalations,
         "gate": None if decision is None else {
             "class": decision["class"],
             "tier": decision["tier"],
@@ -337,38 +469,52 @@ def run_task(arm, task, executor, pins, keep=None):
 def summarise(records, arm, pins):
     arm_records = [r for r in records if r["arm"] == arm]
     n = len(arm_records)
-    successes = sum(r["success"] for r in arm_records)
-    checks_passed = sum(r["checks_passed"] for r in arm_records)
-    checks_total = sum(r["checks_total"] for r in arm_records)
-    cost = sum(r["cost_usd"] for r in arm_records)
-    latencies = [r["latency_ms"] for r in arm_records]
+    infra = [r for r in arm_records if r["outcome"] == "infrastructure_error"]
+    scored = [r for r in arm_records if r["outcome"] != "infrastructure_error"]
+    successes = sum(r["success"] for r in scored)
+    checks_passed = sum(r["checks_passed"] for r in scored)
+    checks_total = sum(r["checks_total"] for r in scored)
+    cost = sum(r["cost_usd"] for r in scored)
+    latencies = [r["latency_ms"] for r in scored]
+    attempts = [a for r in scored for a in r["attempts"] if a["status"] == "ok"]
     quota = {}
-    for r in arm_records:
-        for a in r["attempts"]:
-            q = quota.setdefault(a["model"], {"requests": 0, "req_per_month": pins["models"][a["model"]]["req_per_month"]})
-            q["requests"] += 1
-    for model, q in quota.items():
+    for a in attempts:
+        q = quota.setdefault(
+            a["model"],
+            {"requests": 0, "req_per_month": pins["models"][a["model"]]["req_per_month"]},
+        )
+        q["requests"] += 1
+    for q in quota.values():
         q["pct_of_monthly"] = round(100.0 * q["requests"] / q["req_per_month"], 4)
     return {
         "arm": arm,
         "tasks": n,
+        "tasks_scored": len(scored),
+        "infrastructure_errors": len(infra),
         "successes": successes,
-        "success_rate": round(successes / n, 4) if n else 0.0,
+        "success_rate": round(successes / len(scored), 4) if scored else 0.0,
+        "success_rate_of_all_tasks": round(successes / n, 4) if n else 0.0,
         "partial_check_rate": round(checks_passed / checks_total, 4) if checks_total else 0.0,
         "total_cost_usd": round(cost, 6),
         "cost_per_success_usd": round(cost / successes, 6) if successes else None,
         "mean_latency_ms": round(statistics.mean(latencies)) if latencies else 0,
         "p95_latency_ms": round(sorted(latencies)[max(0, int(0.95 * len(latencies)) - 1)]) if latencies else 0,
-        "retries": sum(r["retries"] for r in arm_records),
-        "escalations": sum(r["escalations"] for r in arm_records),
-        "routing_overhead_ms_total": round(sum(r["routing_ms"] for r in arm_records), 2),
-        "routing_overhead_ms_mean": round(statistics.mean([r["routing_ms"] for r in arm_records]), 2) if n else 0.0,
+        "retries": sum(r["retries"] for r in scored),
+        "escalations": sum(r["escalations"] for r in scored),
+        "harness_retries": sum(r["harness_retries"] for r in scored),
+        "harness_escalations": sum(r["harness_escalations"] for r in scored),
+        "reported_retries": sum(r["reported_retries"] for r in scored),
+        "routing_overhead_ms_total": round(sum(r["routing_ms"] for r in scored), 2),
+        "routing_overhead_ms_mean": round(statistics.mean([r["routing_ms"] for r in scored]), 2) if scored else 0.0,
         "quota": quota,
         "max_quota_pct": round(max((q["pct_of_monthly"] for q in quota.values()), default=0.0), 4),
         "failures": [
             {"task": r["task"], "category": r["category"], "failures": r["failures"],
              "model": r["model"], "gate": r["gate"]}
-            for r in arm_records if not r["success"]
+            for r in scored if not r["success"]
+        ],
+        "adapter_errors": [
+            {"task": r["task"], "error": r["adapter_error"]} for r in infra
         ],
     }
 
@@ -378,7 +524,7 @@ def compare(arms):
     base = arms.get("fixed_workhorse")
     if base is None:
         return out
-    for name in ("fixed_strong", "autorouter"):
+    for name in ("fixed_workhorse_retry", "fixed_strong", "autorouter"):
         if name not in arms:
             continue
         cur = arms[name]
@@ -398,16 +544,36 @@ def compare(arms):
 
 def build_report(records, pins, executor, arm_names=ARMS):
     arms = {arm: summarise(records, arm, pins) for arm in arm_names}
+
+    reasons = []
+    if executor == "stub":
+        reasons.append("synthetic executor: canned patches and canned usage")
+    adapter_failures = [r for r in records if r["outcome"] == "infrastructure_error"]
+    if adapter_failures:
+        reasons.append(
+            f"{len(adapter_failures)} task run(s) failed in the adapter and were excluded from scoring"
+        )
+    valid = not reasons
+
+    if executor == "stub":
+        warning = (
+            "SYNTHETIC RUN: stub executor. These numbers test the harness, not the router. "
+            "Do not cite them as evidence."
+        )
+    elif not valid:
+        warning = (
+            "INVALID RUN: the adapter failed; results are excluded and this report is not "
+            "evidence. Fix the adapter and re-run."
+        )
+    else:
+        warning = "Measured run. Check eval/README.md for the protocol before comparing runs."
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "synthetic": executor == "stub",
-        "valid_evidence": executor != "stub",
-        "warning": (
-            "SYNTHETIC RUN: stub executor. These numbers test the harness, not the router. "
-            "Do not cite them as evidence."
-            if executor == "stub"
-            else "Measured run. Check eval/README.md for the protocol before comparing runs."
-        ),
+        "valid_evidence": valid,
+        "validity": {"valid": valid, "reasons": reasons},
+        "warning": warning,
         "pins": {
             "task_set_sha256": pins["task_set_sha256"],
             "pinned_on": pins["pinned_on"],
@@ -431,19 +597,26 @@ def render_markdown(report, arm_names=None):
     lines.append("")
     lines.append(f"> **{report['warning']}**")
     lines.append("")
-    lines.append("| arm | success | checks | cost $ | $/success | mean ms | p95 ms | retries | escalations | routing ms | max quota % |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
+    if not report["validity"]["valid"]:
+        for reason in report["validity"]["reasons"]:
+            lines.append(f"- not evidence: {reason}")
+        lines.append("")
+    lines.append("| arm | success | infra errors | checks | cost $ | $/success | mean ms | p95 ms | retries | escalations | routing ms | max quota % |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for arm in arm_names:
         a = report["arms"][arm]
         cps = "n/a" if a["cost_per_success_usd"] is None else f"{a['cost_per_success_usd']:.4f}"
         lines.append(
-            f"| {arm} | {a['successes']}/{a['tasks']} ({a['success_rate']:.0%}) | "
-            f"{a['partial_check_rate']:.0%} | {a['total_cost_usd']:.4f} | {cps} | "
+            f"| {arm} | {a['successes']}/{a['tasks_scored']} ({a['success_rate']:.0%}) | "
+            f"{a['infrastructure_errors']} | {a['partial_check_rate']:.0%} | "
+            f"{a['total_cost_usd']:.4f} | {cps} | "
             f"{a['mean_latency_ms']} | {a['p95_latency_ms']} | {a['retries']} | {a['escalations']} | "
             f"{a['routing_overhead_ms_mean']:.1f} | {a['max_quota_pct']:.3f} |"
         )
     lines.append("")
     lines.append("## Comparison vs fixed-workhorse")
+    lines.append("")
+    lines.append("`fixed_workhorse_retry` isolates the effect of a second attempt from the effect of routing.")
     lines.append("")
     lines.append("| comparison | success delta (pp) | cost delta | $/success delta |")
     lines.append("|---|---|---|---|")
@@ -452,6 +625,22 @@ def render_markdown(report, arm_names=None):
         cps = "n/a" if c["cost_per_success_delta_pct"] is None else f"{c['cost_per_success_delta_pct']:+.1f}%"
         lines.append(f"| {key} | {c['success_delta_pp']:+.1f} | {cost} | {cps} |")
     lines.append("")
+    lines.append("## Infrastructure / adapter errors")
+    lines.append("")
+    any_adapter = False
+    for arm in arm_names:
+        errors = report["arms"][arm]["adapter_errors"]
+        if not errors:
+            continue
+        any_adapter = True
+        lines.append(f"### {arm}")
+        lines.append("")
+        for e in errors:
+            lines.append(f"- `{e['task']}`: {e['error']}")
+        lines.append("")
+    if not any_adapter:
+        lines.append("None. Every task executed and returned valid usage data.")
+        lines.append("")
     lines.append("## Failure cases")
     lines.append("")
     any_failure = False
@@ -469,7 +658,7 @@ def render_markdown(report, arm_names=None):
             lines.append(f"- `{f['task']}` [{f['category']}] on `{f['model']}`{gate}: {'; '.join(f['failures'])}")
         lines.append("")
     if not any_failure:
-        lines.append("No failures in this run.")
+        lines.append("No model failures in this run.")
         lines.append("")
     lines.append("## Quota used")
     lines.append("")
@@ -485,7 +674,7 @@ def render_markdown(report, arm_names=None):
 # main
 # --------------------------------------------------------------------------- #
 def main():
-    ap = argparse.ArgumentParser(description="Compare fixed-workhorse, fixed-strong and AutoRouter.")
+    ap = argparse.ArgumentParser(description="Compare fixed and gate-routed arms.")
     ap.add_argument("--executor", choices=EXECUTORS, default="stub")
     ap.add_argument("--tasks", help="comma-separated task ids (default: all)")
     ap.add_argument("--arms", help="comma-separated arms (default: all)")
@@ -494,6 +683,9 @@ def main():
     ap.add_argument("--self-test", action="store_true", help="stub run + assert the report is well formed")
     ap.add_argument("--force", action="store_true", help="allow writing a synthetic report into eval/results/")
     args = ap.parse_args()
+
+    if args.executor == "command" and not os.environ.get("AUTOROUTER_EVAL_CMD"):
+        raise SystemExit("ERROR: --executor command requires AUTOROUTER_EVAL_CMD to be set")
 
     pins = load_pins()
     tasks = load_tasks()
@@ -536,12 +728,14 @@ def main():
         for arm in arms:
             a = report["arms"][arm]
             for key in ("success_rate", "total_cost_usd", "mean_latency_ms", "p95_latency_ms",
-                        "retries", "escalations", "routing_overhead_ms_mean", "failures", "quota"):
+                        "retries", "escalations", "routing_overhead_ms_mean", "failures", "quota",
+                        "infrastructure_errors", "adapter_errors", "tasks_scored"):
                 assert key in a, (arm, key)
+        assert all(r["outcome"] in OUTCOMES for r in records)
         print(f"self-test ok: {len(records)} task runs, {len(tasks)} tasks x {len(arms)} arms")
-        print(f"  (synthetic) success: " + ", ".join(
-            f"{arm}={report['arms'][arm]['successes']}/{report['arms'][arm]['tasks']}" for arm in arms))
-        print(f"  (synthetic) cost:    " + ", ".join(
+        print("  (synthetic) success: " + ", ".join(
+            f"{arm}={report['arms'][arm]['successes']}/{report['arms'][arm]['tasks_scored']}" for arm in arms))
+        print("  (synthetic) cost:    " + ", ".join(
             f"{arm}=${report['arms'][arm]['total_cost_usd']:.4f}" for arm in arms))
 
     if args.out:
