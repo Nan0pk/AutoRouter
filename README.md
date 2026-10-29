@@ -1,5 +1,7 @@
 # AutoRouter
 
+[![CI](https://github.com/Nan0pk/AutoRouter/actions/workflows/ci.yml/badge.svg)](https://github.com/Nan0pk/AutoRouter/actions/workflows/ci.yml)
+
 A **methodology + toolkit** for building **quota-aware, capability-tiered automatic model routing** in any AI coding harness.
 
 Instead of pinning one model forever, AutoRouter teaches a harness to:
@@ -124,6 +126,11 @@ for injection points (plugins/hooks, agent configs, or an LLM proxy) and per-har
 - **Reserve the scarce.** Tiny-quota frontier models are for genuinely hard work only.
 - **Keep the cache.** Delegate (child sessions) instead of re-routing the main model every turn.
 - **Stay reproducible.** Config is data → tiers → config; re-run when models or prices change.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Run `bash scripts/check.sh` before opening a PR — it's
+the same check CI runs.
 
 ## License
 

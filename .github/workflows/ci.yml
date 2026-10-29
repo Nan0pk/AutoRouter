@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Self-check (gate, score, build, validate)
+        run: bash scripts/check.sh
+
+      - name: Schema validation (generic example)
+        run: |
+          python3 -m pip install --quiet jsonschema
+          python3 - <<'PY'
+          import json
+          import jsonschema
+          schema = json.load(open("schema/autorouter.schema.json"))
+          data = json.load(open("examples/generic/router.config.json"))
+          jsonschema.validate(data, schema)
+          print("schema ok")
+          PY

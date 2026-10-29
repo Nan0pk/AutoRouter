@@ -9,7 +9,7 @@
       "id": "provider/free-floor",
       "tier": "T0",
       "capability": 0.2,
-      "quota": { "requests_per_month": -1 },
+      "quota": { "monthly_limit_usd": 0, "requests_per_month": 1000000 },
       "description": "T0 throwaway. Free/unlimited but weak. Use only for mechanical or disposable work. Not for real feature work or debugging."
     },
     {

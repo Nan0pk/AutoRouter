@@ -7,6 +7,7 @@
   "additionalProperties": false,
   "required": ["version", "models"],
   "properties": {
+    "$schema": { "type": "string", "description": "Optional $schema reference." },
     "version": { "type": "integer", "const": 1 },
     "default_model": { "$ref": "#/definitions/modelRef", "description": "Model used for trivial prompts / when routing is skipped." },
     "fallback": { "$ref": "#/definitions/modelRef", "description": "Safe model used when a decision fails. Should be cheap AND capable (T2)." },
