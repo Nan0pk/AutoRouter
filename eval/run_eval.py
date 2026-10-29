@@ -276,6 +276,108 @@ def execute(executor, task, role, model, pins, workdir):
 
 
 # --------------------------------------------------------------------------- #
+# behavioural tests (sandboxed -- this is the only place model-written code runs)
+# --------------------------------------------------------------------------- #
+SANDBOX_MODES = ("auto", "bwrap", "unshare", "none")
+
+
+_SANDBOX_CACHE = {}
+
+
+def detect_sandbox(requested="auto"):
+    """Return the strongest available mechanism, or 'none'. Never assume one."""
+    if requested in _SANDBOX_CACHE:
+        return _SANDBOX_CACHE[requested]
+    if requested != "auto":
+        _SANDBOX_CACHE[requested] = requested
+        return requested
+    if shutil.which("bwrap"):
+        probe = subprocess.run(
+            ["bwrap", "--unshare-all", "--die-with-parent", "--ro-bind", "/", "/",
+             "--dev", "/dev", "--proc", "/proc", "/bin/true"],
+            capture_output=True,
+        )
+        if probe.returncode == 0:
+            _SANDBOX_CACHE[requested] = "bwrap"
+            return "bwrap"
+    if shutil.which("unshare"):
+        probe = subprocess.run(["unshare", "-rn", "/bin/true"], capture_output=True)
+        if probe.returncode == 0:
+            _SANDBOX_CACHE[requested] = "unshare"
+            return "unshare"
+    _SANDBOX_CACHE[requested] = "none"
+    return "none"
+
+
+def sandbox_argv(mechanism, script, workdir):
+    python = sys.executable
+    if mechanism == "bwrap":
+        return [
+            "bwrap", "--unshare-all", "--die-with-parent", "--clearenv",
+            "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
+            "--bind", str(workdir), str(workdir),
+            "--chdir", str(workdir),
+            "--setenv", "PATH", "/usr/local/bin:/usr/bin:/bin",
+            "--setenv", "HOME", str(workdir),
+            python, str(script),
+        ]
+    if mechanism == "unshare":
+        return ["unshare", "-rn", "--", python, str(script)]
+    return [python, str(script)]
+
+
+def run_behavior(task, workdir, pins, mechanism):
+    """Run the task's behavioural checks against the current workspace.
+
+    Returns a dict with status:
+      ok             checks ran; see passed/total/checks
+      skipped        no sandbox available; behaviour was NOT verified
+      sandbox_error  the sandbox itself failed to start (infrastructure)
+      broke          the script produced no result (the code under test broke it)
+    """
+    if not task.get("behavior"):
+        return {"status": "not_applicable", "reason": None, "checks": [], "passed": 0, "total": 0}
+    script = EVAL / task["behavior"]
+    if mechanism == "none":
+        return {"status": "skipped", "reason": "no sandbox available (bwrap/unshare)",
+                "checks": [], "passed": 0, "total": 0}
+    cmd = sandbox_argv(mechanism, script, workdir)
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            timeout=pins["settings"].get("behavior_timeout_s", 60),
+        )
+    except subprocess.TimeoutExpired:
+        return {"status": "broke", "reason": "behavioural tests timed out",
+                "checks": [], "passed": 0, "total": 0}
+    payload = None
+    try:
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        payload = None
+    if payload is None:
+        stderr = (proc.stderr or "").strip()
+        if mechanism != "none" and (
+            "bwrap:" in stderr or "unshare:" in stderr or "Operation not permitted" in stderr
+        ):
+            return {"status": "sandbox_error", "reason": stderr.splitlines()[-1][:300],
+                    "checks": [], "passed": 0, "total": 0}
+        tail = stderr.splitlines()[-1][:300] if stderr else "no output"
+        return {"status": "broke", "reason": tail, "checks": [], "passed": 0, "total": 0}
+    checks = payload.get("checks", [])
+    return {
+        "status": "ok",
+        "reason": None,
+        "checks": checks,
+        "passed": sum(1 for c in checks if c.get("ok")),
+        "total": len(checks),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # routing
 # --------------------------------------------------------------------------- #
 def gate(prompt):
@@ -355,7 +457,7 @@ def price(model, tokens_in, tokens_out, pins):
 # --------------------------------------------------------------------------- #
 # running
 # --------------------------------------------------------------------------- #
-def run_task(arm, task, executor, pins, keep=None):
+def run_task(arm, task, executor, pins, keep=None, sandbox="auto"):
     workdir = Path(keep or tempfile.mkdtemp(prefix="autorouter-eval-")) / task["id"]
     if workdir.exists():
         shutil.rmtree(workdir)
@@ -373,6 +475,7 @@ def run_task(arm, task, executor, pins, keep=None):
     attempts = []
     retries = escalations = 0
     adapter_error = None
+    behavior = {"status": "not_applicable", "reason": None, "checks": [], "passed": 0, "total": 0}
 
     def attempt(model_id, role_name, tier_name):
         res = execute(executor, task, role_name, model_id, pins, workdir)
@@ -393,6 +496,18 @@ def run_task(arm, task, executor, pins, keep=None):
         )
         return res
 
+    mechanism = detect_sandbox(sandbox)
+
+    def judge():
+        """Static checks plus sandboxed behaviour. Returns (passed, failures, behavior)."""
+        p, f = verify(workdir, task["checks"])
+        b = run_behavior(task, workdir, pins, mechanism)
+        p += b["passed"]
+        f = list(f) + [f"behavior:{c['name']}: {c['detail']}" for c in b["checks"] if not c.get("ok")]
+        if b["status"] == "broke":
+            f.append(f"behavior: test runner broke: {b['reason']}")
+        return p, f, b
+
     first = attempt(model, role, tier)
     passed, failures = 0, []
 
@@ -402,23 +517,31 @@ def run_task(arm, task, executor, pins, keep=None):
         adapter_error = first["error"]
         outcome = "infrastructure_error"
     else:
-        passed, failures = verify(workdir, task["checks"])
-        plan = retry_plan(arm, failures, decision, pins)
-        if plan:
-            retries += 1
-            second = attempt(plan["model"], plan["role"], plan["tier"])
-            if second["status"] != "ok":
-                adapter_error = second["error"]
-                outcome = "infrastructure_error"
-                failures = [f"retry adapter error: {second['error']}"]
-                passed = 0
-            else:
-                if plan["escalation"]:
-                    escalations += 1
-                passed, failures = verify(workdir, task["checks"])
-                outcome = "success" if not failures else "model_failure"
+        passed, failures, behavior = judge()
+        if behavior["status"] == "sandbox_error":
+            adapter_error = f"sandbox failed: {behavior['reason']}"
+            outcome = "infrastructure_error"
+            failures = [adapter_error]
+            passed = 0
         else:
-            outcome = "success" if not failures else "model_failure"
+            plan = retry_plan(arm, failures, decision, pins)
+            if plan:
+                retries += 1
+                second = attempt(plan["model"], plan["role"], plan["tier"])
+                if second["status"] != "ok":
+                    adapter_error = second["error"]
+                    outcome = "infrastructure_error"
+                    failures = [f"retry adapter error: {second['error']}"]
+                    passed = 0
+                else:
+                    if plan["escalation"]:
+                        escalations += 1
+                    passed, failures, behavior = judge()
+                    outcome = "success" if not failures else "model_failure"
+            else:
+                outcome = "success" if not failures else "model_failure"
+
+    verified = behavior["status"] in ("ok", "not_applicable")
 
     ok_attempts = [a for a in attempts if a["status"] == "ok"]
     tokens_in = sum(a["tokens_in"] for a in attempts)
@@ -438,9 +561,18 @@ def run_task(arm, task, executor, pins, keep=None):
         "outcome": outcome,
         "success": outcome == "success",
         "checks_passed": passed,
-        "checks_total": len(task["checks"]),
+        "checks_total": len(task["checks"]) + behavior["total"],
         "failures": failures,
         "adapter_error": adapter_error,
+        "behavior": {
+            "status": behavior["status"],
+            "reason": behavior["reason"],
+            "passed": behavior["passed"],
+            "total": behavior["total"],
+        },
+        "sandbox": mechanism,
+        "sandbox_requested": sandbox,
+        "verified": verified,
         "model": model,
         "tier": tier,
         "attempts": attempts,
@@ -491,6 +623,10 @@ def summarise(records, arm, pins):
         "tasks": n,
         "tasks_scored": len(scored),
         "infrastructure_errors": len(infra),
+        "behavioral_verified": sum(1 for r in scored if r["verified"]),
+        "behavioral_skipped": sum(
+            1 for r in scored if r.get("behavior", {}).get("status") == "skipped"
+        ),
         "successes": successes,
         "success_rate": round(successes / len(scored), 4) if scored else 0.0,
         "success_rate_of_all_tasks": round(successes / n, 4) if n else 0.0,
@@ -553,6 +689,16 @@ def build_report(records, pins, executor, arm_names=ARMS):
         reasons.append(
             f"{len(adapter_failures)} task run(s) failed in the adapter and were excluded from scoring"
         )
+    mechanism = records[0]["sandbox"] if records else detect_sandbox()
+    unverified = [
+        r for r in records
+        if r["outcome"] != "infrastructure_error"
+        and r.get("behavior", {}).get("status") in ("skipped", "broke")
+    ]
+    if mechanism == "none" and records:
+        reasons.append("behavioural tests skipped: no sandbox (bwrap/unshare) available")
+    elif unverified:
+        reasons.append(f"{len(unverified)} task run(s) were not behaviourally verified")
     valid = not reasons
 
     if executor == "stub":
@@ -574,6 +720,16 @@ def build_report(records, pins, executor, arm_names=ARMS):
         "valid_evidence": valid,
         "validity": {"valid": valid, "reasons": reasons},
         "warning": warning,
+        "sandbox": {
+            "mechanism": mechanism,
+            "applies_to": pins["sandbox"]["applies_to"],
+            "behavioral_tests_run": sum(
+                1 for r in records if r.get("behavior", {}).get("status") == "ok"
+            ),
+            "behavioral_tests_skipped": sum(
+                1 for r in records if r.get("behavior", {}).get("status") == "skipped"
+            ),
+        },
         "pins": {
             "task_set_sha256": pins["task_set_sha256"],
             "pinned_on": pins["pinned_on"],
@@ -601,14 +757,19 @@ def render_markdown(report, arm_names=None):
         for reason in report["validity"]["reasons"]:
             lines.append(f"- not evidence: {reason}")
         lines.append("")
-    lines.append("| arm | success | infra errors | checks | cost $ | $/success | mean ms | p95 ms | retries | escalations | routing ms | max quota % |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    lines.append(f"Sandbox for behavioural tests: **{report['sandbox']['mechanism']}** "
+                 f"({report['sandbox']['behavioral_tests_run']} run, "
+                 f"{report['sandbox']['behavioral_tests_skipped']} skipped)")
+    lines.append("")
+    lines.append("| arm | success | infra errors | verified | checks | cost $ | $/success | mean ms | p95 ms | retries | escalations | routing ms | max quota % |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for arm in arm_names:
         a = report["arms"][arm]
         cps = "n/a" if a["cost_per_success_usd"] is None else f"{a['cost_per_success_usd']:.4f}"
         lines.append(
             f"| {arm} | {a['successes']}/{a['tasks_scored']} ({a['success_rate']:.0%}) | "
-            f"{a['infrastructure_errors']} | {a['partial_check_rate']:.0%} | "
+            f"{a['infrastructure_errors']} | {a['behavioral_verified']}/{a['tasks_scored']} | "
+            f"{a['partial_check_rate']:.0%} | "
             f"{a['total_cost_usd']:.4f} | {cps} | "
             f"{a['mean_latency_ms']} | {a['p95_latency_ms']} | {a['retries']} | {a['escalations']} | "
             f"{a['routing_overhead_ms_mean']:.1f} | {a['max_quota_pct']:.3f} |"
@@ -680,6 +841,8 @@ def main():
     ap.add_argument("--arms", help="comma-separated arms (default: all)")
     ap.add_argument("--out", help="write JSON report here")
     ap.add_argument("--markdown", help="write the markdown report here")
+    ap.add_argument("--sandbox", choices=SANDBOX_MODES, default="auto",
+                    help="isolation for behavioural tests (default: auto, prefers bubblewrap)")
     ap.add_argument("--self-test", action="store_true", help="stub run + assert the report is well formed")
     ap.add_argument("--force", action="store_true", help="allow writing a synthetic report into eval/results/")
     args = ap.parse_args()
@@ -715,7 +878,7 @@ def main():
     records = []
     for arm in arms:
         for task in tasks:
-            records.append(run_task(arm, task, args.executor, pins))
+            records.append(run_task(arm, task, args.executor, pins, sandbox=args.sandbox))
 
     report = build_report(records, pins, args.executor, arms)
     markdown = render_markdown(report, arms)
@@ -732,6 +895,11 @@ def main():
                         "infrastructure_errors", "adapter_errors", "tasks_scored"):
                 assert key in a, (arm, key)
         assert all(r["outcome"] in OUTCOMES for r in records)
+        assert "sandbox" in report and report["sandbox"]["mechanism"] in ("bwrap", "unshare", "none")
+        if report["sandbox"]["mechanism"] == "none":
+            assert any("sandbox" in r.lower() for r in report["validity"]["reasons"])
+        else:
+            assert report["sandbox"]["behavioral_tests_run"] > 0
         print(f"self-test ok: {len(records)} task runs, {len(tasks)} tasks x {len(arms)} arms")
         print("  (synthetic) success: " + ", ".join(
             f"{arm}={report['arms'][arm]['successes']}/{report['arms'][arm]['tasks_scored']}" for arm in arms))

@@ -198,15 +198,19 @@ See `templates/orchestrator.md` and `examples/opencode/agents/auto.md`.
 Gating and scoring are inputs; the output that matters is end-to-end behaviour. Run the same task
 set through a fixed cheap model, a fixed strong model, and the router, and report:
 
-- **success** (all checks pass) and partial checks,
+- **success** (static *and* behavioural checks pass) and partial checks,
 - **cost/quota** consumed, and cost per success,
 - **latency**, retries and escalations,
 - **routing overhead** (the gate's own time), reported separately,
 - **failure cases** — every one, with the gate decision that led there.
 
+Behavioural checks matter more than text matching: "mentions `realpath`" is not "prevents
+traversal". Execute the solution against adversarial inputs, and run untrusted code in a real
+sandbox (network and filesystem isolated). If the sandbox is unavailable, the run is not evidence.
+
 Pin model versions, prices, temperature, timeouts and the task-set hash, or the comparison is not
-reproducible. `eval/` is a working harness for this; until it has a measured run, do not claim a
-quota win.
+reproducible. Fail closed: an adapter error is an invalid run, not a model failure. `eval/` is a
+working harness for this; until it has a measured run, do not claim a quota win.
 
 ## The one-line philosophy
 

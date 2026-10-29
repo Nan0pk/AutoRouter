@@ -133,10 +133,14 @@ class ReportValidity(unittest.TestCase):
         self.assertFalse(report["valid_evidence"])
         self.assertIn("synthetic", " ".join(report["validity"]["reasons"]).lower())
 
-    def test_clean_command_run_is_valid(self):
+    def test_clean_command_run_is_valid_only_with_a_sandbox(self):
         rec = run_eval.run_task("fixed_workhorse", self.task, "stub", self.pins)
         report = run_eval.build_report([rec], self.pins, "command", ["fixed_workhorse"])
-        self.assertTrue(report["valid_evidence"])
+        if run_eval.detect_sandbox() == "none":
+            self.assertFalse(report["valid_evidence"])
+            self.assertIn("sandbox", " ".join(report["validity"]["reasons"]).lower())
+        else:
+            self.assertTrue(report["valid_evidence"], report["validity"]["reasons"])
 
     def test_one_adapter_error_invalidates_the_whole_report(self):
         rec = run_eval.run_task("fixed_workhorse", self.task, "stub", self.pins)
@@ -159,6 +163,54 @@ class ReportValidity(unittest.TestCase):
         self.assertEqual(arm["tasks_scored"], 1)
         self.assertEqual(arm["success_rate"], 1.0)
         self.assertEqual(arm["success_rate_of_all_tasks"], 0.5)
+
+
+class BehaviouralVerification(unittest.TestCase):
+    """Static text checks are weak; behavioural tests must carry the verdict."""
+
+    def setUp(self):
+        self.pins = run_eval.load_pins()
+        self.task = next(t for t in run_eval.load_tasks() if t["id"] == "sec-path")
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+
+    @unittest.skipIf(run_eval.detect_sandbox() == "none", "no sandbox available")
+    def test_static_checks_pass_while_behaviour_fails(self):
+        workdir = Path(self._tmp.name) / "sec-path"
+        import shutil
+
+        shutil.copytree(run_eval.EVAL / self.task["fixture"], workdir)
+        # A plausible-looking "fix": mentions realpath, never joins the raw
+        # name, and still lets an absolute path escape the base directory.
+        (workdir / "files.py").write_text(
+            "import os\n\n\ndef read_file(base, name):\n"
+            "    path = os.path.realpath(os.path.join(base, name.replace('../', '')))\n"
+            "    with open(path) as f:\n        return f.read()\n"
+        )
+        passed, failures = run_eval.verify(workdir, self.task["checks"])
+        self.assertEqual(failures, [], "the planted solution must satisfy the static checks")
+        behavior = run_eval.run_behavior(
+            self.task, workdir, self.pins, run_eval.detect_sandbox()
+        )
+        self.assertEqual(behavior["status"], "ok")
+        self.assertLess(behavior["passed"], behavior["total"], "behaviour must catch the traversal")
+
+    def test_missing_sandbox_invalidates_the_report(self):
+        rec = run_eval.run_task("fixed_workhorse", self.task, "stub", self.pins, sandbox="none")
+        self.assertEqual(rec["behavior"]["status"], "skipped")
+        self.assertFalse(rec["verified"])
+        report = run_eval.build_report([rec], self.pins, "command", ["fixed_workhorse"])
+        self.assertFalse(report["valid_evidence"])
+        self.assertIn("sandbox", " ".join(report["validity"]["reasons"]).lower())
+        self.assertEqual(report["sandbox"]["mechanism"], "none")
+
+    def test_verified_flag_is_recorded(self):
+        rec = run_eval.run_task("fixed_workhorse", self.task, "stub", self.pins)
+        if run_eval.detect_sandbox() == "none":
+            self.assertFalse(rec["verified"])
+        else:
+            self.assertTrue(rec["verified"])
+            self.assertGreater(rec["behavior"]["total"], 0)
 
 
 class MarkdownSurface(unittest.TestCase):

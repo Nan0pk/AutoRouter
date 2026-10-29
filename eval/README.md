@@ -30,8 +30,10 @@ executor name is not evidence: `--executor command` does not make a run valid.
 |---|---|---|
 | Non-zero exit, timeout, no JSON on stdout | `infrastructure_error` | excluded from scoring; `valid_evidence: false`; listed under "adapter errors" |
 | Missing, zero, negative or non-integer `tokens_in`/`tokens_out` | `infrastructure_error` | same |
+| Sandbox fails to start | `infrastructure_error` | same |
+| No sandbox available (behaviour skipped) | `skipped` | scored on static checks only, but **the report is invalid** |
 | Assertions fail after a clean run | `model_failure` | counted in the success rate; listed under "failure cases" |
-| Checks pass | `success` | counted |
+| All checks pass | `success` | counted |
 
 An adapter error is **never retried** (that would hide the fault) and **never counted as a model
 failure** (that would make a broken adapter look like a weak model). Success rates use the number
@@ -40,8 +42,21 @@ is visible rather than flattering.
 
 ## Success metric
 
-Binary per task: **all declarative checks pass**. Checks are `contains`, `not_contains`, `regex`,
-and `compiles` over the task's fixture files; they never execute model output.
+Binary per task: **all static checks pass AND all behavioural checks pass**.
+
+- **Static** (`contains`, `not_contains`, `regex`, `compiles`) is a cheap pre-filter over the
+  fixture files. It is deliberately weak and is **not** sufficient on its own: a file can mention
+  `realpath` and still allow traversal.
+- **Behavioural** (`eval/behavior/<task>.py`) imports the solution and exercises it with
+  adversarial inputs. For `sec-path` that means a sibling-directory escape and an absolute path;
+  for `sec-sqli` a `' OR '1'='1` payload that must arrive as a bound parameter; for `sec-shell`
+  an argument that must stay a single vector element; for `data-migrate` an injected failure that
+  must roll back and propagate.
+
+The harness includes a regression test for exactly the gap the static checks have: a planted
+`files.py` that satisfies every static check (it mentions `realpath`, it does not contain the
+literal unsafe join) but still leaks a file through an absolute path. Static: pass. Behaviour:
+fail. If a future change makes the behavioural layer stop catching that, the test fails.
 
 - `success_rate` = tasks fully solved / tasks.
 - `partial_check_rate` = checks passed / checks total (secondary; shows near-misses).
@@ -52,7 +67,8 @@ and `compiles` over the task's fixture files; they never execute model output.
 
 | Metric | How it is obtained |
 |---|---|
-| Success / partial checks | harness verification after the attempt |
+| Success / partial checks | harness verification after the attempt (static + behavioural) |
+| Behaviourally verified | tasks whose behavioural suite actually ran in a sandbox |
 | Cost (USD) | measured `tokens_in` / `tokens_out` × pinned prices, with the cache model from `pins.json` (cache hits billed at `cache_read_cost`, misses at `cache_write_cost`) |
 | Quota | attempts per model / that model's `req_per_month`, and the max share of any monthly allowance |
 | Latency | wall clock per attempt (executor-reported or measured), plus gate time |
@@ -77,6 +93,24 @@ and `compiles` over the task's fixture files; they never execute model output.
 Prompts are deliberately short and realistic; several are *ambiguous* on purpose, because a
 router that only works on well-labelled prompts is not useful. `debug-mutation` and
 `debug-cache`, for instance, are gate mistakes the harness should surface.
+
+## Isolation
+
+Behavioural tests execute **model-written code**, so they run in a sandbox:
+
+| Mechanism | Isolation | Used when |
+|---|---|---|
+| `bwrap` (bubblewrap) | new user/net/pid/ipc/uts namespaces, read-only host root, only the workdir writable | preferred; `--sandbox auto` probes for it |
+| `unshare -rn` | network namespace only; filesystem is **not** isolated | fallback when bwrap is unavailable |
+| `none` | none — behavioural tests are skipped | never valid evidence |
+
+`--sandbox none` does not run behavioural tests and the report is stamped invalid. The
+`sandbox` block in the JSON/Markdown report records which mechanism was used and how many
+behavioural suites ran or were skipped.
+
+**The adapter itself is not sandboxed.** It has to reach the model over the network, so the
+harness cannot enforce the `tool_policy` from `pins.json` on it — that setting is advisory to the
+adapter. Isolation here applies to the code that runs *after* the model answers.
 
 ## Pinned versions and settings
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_set": "eval/tasks.jsonl",
-  "task_set_sha256": "db04d387c1457aa24c15a08a5e93a3ef366232d49cfbd974859c08a30a4029b6",
+  "task_set_sha256": "ecc5d54d7fe3f2b79ed52558dfb3550a9c7a268e694642ca62dba5802527f606",
   "pinned_on": "2026-10-29",
   "models": {
     "opencode-go/deepseek-v4.1-flash": {
@@ -68,9 +68,10 @@
     "max_tokens": 2048,
     "timeout_s": 600,
     "retry_budget": 1,
-    "tool_policy": "repo-local files only; no network",
+    "tool_policy": "advisory to the adapter: repo-local files, no network. The harness cannot enforce it for the adapter (the adapter needs network to call the model); it enforces isolation for behavioural tests.",
     "sandbox": "fresh copy of eval/fixtures/<task> per attempt",
-    "verification": "declarative checks only; model output is never executed"
+    "verification": "declarative static checks plus sandboxed behavioural tests; model output is never executed outside the sandbox",
+    "behavior_timeout_s": 60
   },
   "cost_model": {
     "input_tokens": 20000,
@@ -98,5 +99,13 @@
         "out": 1400
       }
     }
+  },
+  "sandbox": {
+    "applies_to": "behavioural tests only (they execute model-written code)",
+    "preferred": "bubblewrap",
+    "fallback": "unshare --net (network isolation, weaker filesystem isolation)",
+    "network": "unshare-all (no network namespace)",
+    "filesystem": "read-only host root, writable workdir only",
+    "required_for_valid_evidence": true
   }
 }
