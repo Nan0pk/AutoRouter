@@ -83,6 +83,30 @@ class RiskOverrides(unittest.TestCase):
         self.assertNotIn("broad_scope", r["risk"])
 
 
+class TierHints(unittest.TestCase):
+    """`complex` means "route up + delegate", not "start on the frontier"."""
+
+    def test_broad_scope_starts_at_the_hub_tier(self):
+        r = classify("rename this variable across 40 files without breaking public APIs")
+        self.assertEqual((r["class"], r["tier_hint"]), ("complex", "T2"))
+
+    def test_redesign_starts_at_the_hub_tier(self):
+        r = classify("redesign the storage layer")
+        self.assertEqual((r["class"], r["tier_hint"]), ("complex", "T2"))
+        self.assertIn("broad_scope", r["risk"])
+        self.assertTrue(r["delegate"])
+
+    def test_security_and_data_loss_start_strong(self):
+        for prompt in ("fix security vulnerability", "make the migration safe to roll back"):
+            r = classify(prompt)
+            self.assertEqual((r["class"], r["tier_hint"]), ("complex", "T3+"), prompt)
+
+    def test_organic_complexity_starts_strong(self):
+        r = classify("why does this deadlock under load?")
+        self.assertEqual((r["class"], r["tier_hint"]), ("complex", "T3+"))
+        self.assertEqual(r["risk"], [])
+
+
 class Thresholds(unittest.TestCase):
     def test_trivial_stays_on_main(self):
         for prompt in ("rename foo to bar", "hello", "fix the typo in the README"):

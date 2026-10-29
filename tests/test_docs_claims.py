@@ -85,6 +85,40 @@ class StatusTableConsistency(unittest.TestCase):
         self.assertIn("not implemented", quota.lower())
 
 
+class GateClaims(unittest.TestCase):
+    """Headline claims must carry their caveats, not bury them."""
+
+    def test_readme_headline_says_in_sample(self):
+        lines = [ln for ln in read(ROOT / "README.md").splitlines()
+                 if "complexity gate" in ln.lower() and "calibrated" in ln.lower()]
+        self.assertTrue(lines, "no complexity-gate status row found")
+        self.assertIn("in-sample", lines[0].lower())
+        self.assertIn("not held-out", lines[0].lower())
+
+    def test_gate_readme_leading_warning(self):
+        text = read(ROOT / "tests" / "gate" / "README.md").lower()
+        head = text[:600]
+        self.assertIn("in-sample", head)
+        self.assertTrue(
+            "not** held-out accuracy" in head or "not held-out accuracy" in head,
+            "the gate README must say up front that the numbers are not held-out accuracy",
+        )
+
+    def test_complex_does_not_imply_frontier(self):
+        text = read(ROOT / "docs" / "routing-model.md").lower()
+        self.assertIn("does not mean \"start on a frontier model\"", text)
+        self.assertIn("t2", text)
+
+
+class DecisionCadence(unittest.TestCase):
+    def test_policies_are_alternatives_not_a_rule_and_an_exception(self):
+        text = read(ROOT / "docs" / "routing-model.md").lower()
+        self.assertIn("session-sticky", text)
+        self.assertIn("turn-adaptive", text)
+        self.assertNotIn("one decision per session.", text)
+        self.assertIn("decision cadence", text)
+
+
 class NoOverclaims(unittest.TestCase):
     def test_no_present_tense_enforcement_claims(self):
         failures = []

@@ -87,9 +87,29 @@ is breadth, not depth.
 Definitional questions are exempt from the broad-scope override: `"what is a monorepo?"` is a
 lookup, not a repo-wide change.
 
-### 2b. Measured error profile
+**`complex` does not mean "start on a frontier model".** It means *route up and allow
+delegation*; `tier_hint` says where to start:
 
-The gate is calibrated against 162 labelled prompts (`tests/gate/labeled_prompts.csv`).
+| Override | `tier_hint` | Why |
+|---|---|---|
+| `security`, `data_loss` | `T3+` | correctness-critical; start strong, escalate to frontier if needed |
+| `broad_scope` only | `T2` | the difficulty is *breadth*, not depth — a workhorse hub plus a cheap helper |
+| none (organic complexity) | `T3+` | multi-step or subtle work |
+
+So `"redesign the storage layer"` is `complex` with a `T2` hint: start at the workhorse/hub tier
+and let the orchestrator escalate to a stronger agent after a real failure. Whether escalation
+happens, and what it costs, is harness policy — the gate does not force a frontier start, and
+`eval/` measures the escalation path rather than assuming it.
+
+### 2b. Measured error profile — **in-sample, not held-out accuracy**
+
+The gate was **tuned against all 162 labelled prompts** (`tests/gate/labeled_prompts.csv`), and
+the dev and test splits were both inspected during that tuning. The numbers below therefore
+describe the shipped rule set on the data it was fitted to; they are **not** an estimate of
+accuracy on unseen prompts. The split exists so that *future* changes can be checked against
+prompts they were not tuned on — treat a regression there as a real signal, and a flat result
+there as weak evidence of generalisation.
+
 Under-routing (hard work sent to a weaker model) and over-routing (strong quota burned on easy
 work) are reported separately, because they do not cost the same:
 
@@ -133,10 +153,25 @@ route(task):
 
 Hard requirements (**for a harness that implements this step** — none of them are enforced by
 this repository):
-- **One decision per session.** Do not re-route every turn (preserve the prompt cache).
+- **Pick a decision cadence and document it** (see §3a). "One decision per session" and
+  "re-decide every turn" are both defensible policies; what is not defensible is having a
+  document that promises one and an example that does the other.
 - **Fallback is safe.** It should be cheap *and* capable (a `T2` workhorse), so a failed
   decision never lands on an expensive or weak model.
 - **Exact-match the choice** against candidate IDs; if it misses, fall back — never guess.
+
+### 3a. Decision cadence: two explicit policies
+
+| Policy | Behaviour | Cache | Weak follow-ups | Example |
+|---|---|---|---|---|
+| **session-sticky** | decide once when the session starts; keep that model until reset | best — the prompt cache stays warm | none: the model is constant | set the model per session; disable the reset plugin (`delayMs` very large) |
+| **turn-adaptive** | re-decide from the next prompt's text after every turn | worse — each turn can switch models | a contentless "ok" is classified on its own and may route low | `auto-model-reset` with `delayMs: 0` (the OpenCode example's default) |
+
+Both are supported. The example ships **turn-adaptive** because it makes each prompt's routing
+visible and keeps a stuck model from persisting; session-sticky is the better default when cache
+cost dominates. Choose one, state it, and measure it (`eval/` reports routing overhead and
+success per arm) before claiming a quota win. The two policies are not a rule and an exception —
+they are alternatives with different trade-offs.
 
 ## 4. Delegation (mid-conversation)
 
@@ -183,7 +218,8 @@ See `examples/opencode/plugins/auto-model-reset/index.js`.
 
 **Default policy in the example:** *turn-adaptive* (`delayMs: 0`) — the next prompt re-routes
 after every turn. Choose *session-sticky* by raising `delayMs` (e.g. `1800000`) or disabling the
-plugin. Pick one as your documented default and measure both before claiming a quota win.
+plugin. This is one of the two policies described in §3a, not a hard rule with an exception.
+Pick one as your documented default and measure both before claiming a quota win.
 
 ## 5. Worked decision matrix (OpenCode Go, Oct 2026)
 

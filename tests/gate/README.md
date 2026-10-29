@@ -1,5 +1,10 @@
 # Gate calibration set
 
+> **The reported error rates are in-sample.** This set was used to tune the shipped rules, and
+> both splits were inspected during tuning. 0% under-routing / ~17% over-routing describes the
+> rule set on the data it was fitted to; it is **not** held-out accuracy. Do not quote it as a
+> generalisation estimate.
+
 `labeled_prompts.csv` is the labelled prompt set used to calibrate `scripts/classify.py`.
 It has 162 rows (50 trivial / 60 standard / 52 complex) across 12 families, with a
 `dev` / `test` split so the error profile can be re-checked without silently re-fitting.

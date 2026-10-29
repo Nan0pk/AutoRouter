@@ -50,7 +50,7 @@ what you must wire into a harness.
 | Config validation | **Implemented** — custom checks; `--schema` for real JSON Schema | `scripts/validate_router.py` |
 | Provenance, evidence coverage, "insufficient evidence" tiers | **Implemented** | `scripts/score_models.py`, `schema/scored.schema.json` |
 | Explicit token-mix + cache cost model (no blended input+output) | **Implemented** | `scripts/score_models.py` |
-| Complexity gate (heuristic) | **Implemented and calibrated** (162 labelled prompts; 0% under-routing, 16.5% over-routing on the test split), but **advisory** — nothing calls it at runtime | `scripts/classify.py`, `tests/gate/` |
+| Complexity gate (heuristic) | **Implemented and calibrated** — 162 labelled prompts, 0% under-routing / 16.5% over-routing on the test split (**in-sample, not held-out accuracy**); **advisory** — nothing calls it at runtime | `scripts/classify.py`, `tests/gate/` |
 | Model selection per prompt | **External** — the OpenCode example relies on the `opencode-auto-model` plugin (referenced, not vendored or tested here) | `examples/opencode/` |
 | Quota ledger / budget enforcement | **Not implemented** — quota is descriptive guidance only, with no counter or cap | — |
 | Delegation orchestration (pinned subagents) | **Advisory** (OpenCode agent prompts; nothing verifies the hand-off) | `examples/opencode/agents/` |
@@ -182,7 +182,9 @@ design hypothesis, not a result — see [`docs/enforcement.md`](docs/enforcement
   single-shot SWE-bench.
 - **Watch for reward-hacking.** Some models' coding scores are inflated by answer leakage.
 - **Reserve the scarce.** Tiny-quota frontier models are for genuinely hard work only.
-- **Keep the cache.** Delegate (child sessions) instead of re-routing the main model every turn.
+- **Keep the cache — or choose not to, deliberately.** Session-sticky routing (one decision per
+  session) preserves the prompt cache; turn-adaptive routing re-decides each turn. Both are
+  supported (§3a of `docs/routing-model.md`); pick one and measure it.
 - **Stay reproducible.** Config is data → tiers → config; re-run when models or prices change.
 
 ## Contributing
