@@ -102,6 +102,25 @@ Design rules:
 See `templates/orchestrator.md`, `templates/subagent.md`, and
 `examples/opencode/agents/`.
 
+## 4b. Returning to auto after a turn (anti-stickiness)
+
+A session should not stay pinned to the last model the router picked. Add a small companion
+plugin that switches the session back to `router/auto` when a turn finishes, so the next prompt
+re-routes through the hierarchy.
+
+- **Signal:** the server delivers `session.step.ended` to plugin subscribers, but **not**
+  `session.idle` / `session.status` — those are ephemeral client events. Reset only when a step
+  is terminal (`finish !== "tool-calls"`) so the model is never swapped mid-turn.
+- **Scope:** root sessions only (`session.parentID` empty), so pinned delegation subagents are
+  left alone.
+- **Debounce:** `delayMs` after the turn ends; a new `prompt` cancels a pending reset. `0` means
+  reset after every turn; a large value keeps an active conversation on one warm-cache model and
+  only resets after real inactivity.
+- **Tradeoff:** resetting per turn means the router decides on the next prompt's text alone, so a
+  contentless follow-up ("ok", "yes") routes weakly. Prefer a debounce if that matters.
+
+See `examples/opencode/plugins/auto-model-reset/index.js`.
+
 ## 5. Worked decision matrix (OpenCode Go, Oct 2026)
 
 | Prompt | Gate | Route | Delegation |

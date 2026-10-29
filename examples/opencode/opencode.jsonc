@@ -28,6 +28,13 @@
           "openai/gpt-6.1-sol": "External hard-work offload that uses your ChatGPT plan quota, not Go. Use for hard architecture, subtle debugging, and broad refactors when you want to conserve Go quota. Subject to ChatGPT plan limits."
         }
       }
+    },
+    {
+      "package": "./plugins/auto-model-reset",
+      "options": {
+        "delayMs": 0,
+        "onlyRoot": true
+      }
     }
   ]
 }

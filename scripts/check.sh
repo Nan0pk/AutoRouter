@@ -43,4 +43,9 @@ python3 scripts/validate_router.py --config examples/opencode/opencode.jsonc --c
 python3 scripts/validate_router.py --config my-router.json
 python3 scripts/validate_router.py --config generic.json
 
+if command -v node >/dev/null 2>&1; then
+  echo "==> node syntax check (example plugins)"
+  node --input-type=module -e "await import('./examples/opencode/plugins/auto-model-reset/index.js')" >/dev/null
+fi
+
 echo "OK: all checks passed"

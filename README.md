@@ -48,7 +48,8 @@ AutoRouter/
 ├── examples/
 │   ├── opencode/               # a complete, working OpenCode setup (Go plan)
 │   │   ├── opencode.jsonc
-│   │   └── agents/             # orchestrator + delegation subagents
+│   │   ├── agents/             # orchestrator + delegation subagents
+│   │   └── plugins/            # auto-model-reset (return to auto after a turn)
 │   └── generic/
 │       └── router.config.json  # harness-agnostic example
 ├── scripts/
@@ -99,6 +100,8 @@ All scripts are dependency-free Python 3.
 - An **11-model `T0`–`T5` ladder** in `opencode.jsonc` (quota-aware).
 - A self-aware **`auto` orchestrator** agent that runs on the auto-routed model and delegates
   subtasks to pinned-model subagents (`helper`, `researcher`, `specialist`, `expert`).
+- An **`auto-model-reset` plugin** that returns the session to `router/auto` when a turn ends, so
+  it never gets stuck on the last routed model.
 
 See `docs/methodology.md` for why each model landed where it did.
 
