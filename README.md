@@ -169,8 +169,9 @@ for injection points (plugins/hooks, agent configs, or an LLM proxy) and per-har
 
 ## Evaluation (and what it does not prove)
 
-`eval/` compares three arms on the same task set: a fixed workhorse, a fixed strong model, and
-AutoRouter. It reports success, cost, quota consumed, latency, retries/escalations, routing
+`eval/` compares four arms on the same task set: a fixed workhorse, the same workhorse with one
+retry, a fixed strong model, and the **gate-based policy** (`scripts/classify.py` + a tier map,
+not the OpenCode plugin). It reports success, cost, quota consumed, latency, retries/escalations, routing
 overhead, and every failure case, with models, prices and settings pinned in `eval/pins.json`.
 
 **No measured run has been committed yet.** The harness runs in CI in synthetic mode, which tests

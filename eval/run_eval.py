@@ -36,6 +36,13 @@ command  The real path. Runs one command per attempt with the prompt on stdin:
          infrastructure error. The harness verifies the files afterwards; it
          never executes model output.
 
+Scope
+-----
+This evaluates the **gate-based routing policy**: `scripts/classify.py` plus the hard-coded
+tier map in `pins.json`, with one escalation. It does **not** exercise the OpenCode
+`opencode-auto-model` plugin, its decider, or the delegation setup in `examples/opencode/`, so
+its results say nothing about those. Reports state this in the `policy` block.
+
 Arms
 ----
     fixed_workhorse        T2, one attempt
@@ -716,6 +723,15 @@ def build_report(records, pins, executor, arm_names=ARMS):
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "policy": {
+            "name": "gate-based routing policy",
+            "implementation": "scripts/classify.py + tier map from pins.json",
+            "exercises_opencode_plugin": False,
+            "exercises_delegation": False,
+            "note": "Results describe the gate-based policy only. They say nothing about the "
+                    "OpenCode auto-model plugin, its decider, or the delegation setup in "
+                    "examples/opencode/.",
+        },
         "synthetic": executor == "stub",
         "valid_evidence": valid,
         "validity": {"valid": valid, "reasons": reasons},
@@ -750,6 +766,12 @@ def render_markdown(report, arm_names=None):
     lines.append("# AutoRouter evaluation")
     lines.append("")
     lines.append(f"Generated {report['generated_at']} | task set `{report['pins']['task_set_sha256'][:12]}`")
+    lines.append("")
+    lines.append(
+        f"Policy under test: **{report['policy']['name']}** "
+        f"(`{report['policy']['implementation']}`). This does not exercise the OpenCode plugin, "
+        "its decider, or the delegation setup."
+    )
     lines.append("")
     lines.append(f"> **{report['warning']}**")
     lines.append("")

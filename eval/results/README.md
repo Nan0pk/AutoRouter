@@ -2,7 +2,8 @@
 
 Empty on purpose.
 
-No **measured** evaluation run has been committed, so the routing/quota claim in the README is
+No **measured** evaluation run has been committed (of the gate-based policy; the OpenCode plugin
+and delegation setup are not exercised by this harness at all), so the routing/quota claim in the README is
 still unvalidated. Put real runs here (`--executor command`), including the markdown report, the
 JSON report, and the `pins.json` that produced them.
 

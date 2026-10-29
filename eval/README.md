@@ -7,6 +7,14 @@ This directory exists to **test the routing claim**, not to support it. The clai
 
 Until a **measured** run exists, that claim is unvalidated. See "Status" below.
 
+## Scope: the gate-based policy, not the OpenCode integration
+
+This harness evaluates **`scripts/classify.py` + the tier map in `pins.json` + one escalation**.
+It does **not** exercise the `opencode-auto-model` plugin, its decider model, or the delegation
+setup in `examples/opencode/`. So a result here answers "is this routing policy better than
+pinning a model?" — not "does the OpenCode setup work?". Every report states this in its
+`policy` block, and the markdown header repeats it.
+
 ## Arms
 
 | Arm | Model | Behaviour |

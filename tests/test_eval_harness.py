@@ -213,6 +213,18 @@ class BehaviouralVerification(unittest.TestCase):
             self.assertGreater(rec["behavior"]["total"], 0)
 
 
+class ScopeStatement(unittest.TestCase):
+    def test_report_says_it_is_the_gate_based_policy(self):
+        pins = run_eval.load_pins()
+        task = next(t for t in run_eval.load_tasks() if t["id"] == "mech-port")
+        rec = run_eval.run_task("fixed_workhorse", task, "stub", pins)
+        report = run_eval.build_report([rec], pins, "stub", ["fixed_workhorse"])
+        self.assertEqual(report["policy"]["name"], "gate-based routing policy")
+        self.assertFalse(report["policy"]["exercises_opencode_plugin"])
+        self.assertFalse(report["policy"]["exercises_delegation"])
+        self.assertIn("does not exercise the OpenCode plugin", run_eval.render_markdown(report))
+
+
 class MarkdownSurface(unittest.TestCase):
     def test_invalid_runs_say_so(self):
         pins = run_eval.load_pins()
