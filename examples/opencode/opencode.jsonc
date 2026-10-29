@@ -1,3 +1,10 @@
+// ADVISORY BOUNDARY (see docs/enforcement.md):
+// - The complexity gate in scripts/classify.py is NOT wired into this config. Nothing here
+//   calls it; the `auto` orchestrator is merely asked to apply the same rules.
+// - The quota figures below are descriptive text inside model descriptions. There is no ledger
+//   and no budget cap; `opencode-auto-model` does not read them.
+// - Model selection for "router/auto" is done entirely by the opencode-auto-model plugin,
+//   which is referenced here but not vendored or tested in this repository.
 {
   "$schema": "https://opencode.ai/config.json",
   "snapshots": true,

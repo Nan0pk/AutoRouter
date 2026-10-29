@@ -13,6 +13,12 @@ Before you begin, classify the request so you don't overuse the delegation pool:
 - Trivial / single-step (rename, one-liner, quick lookup, simple question) -> do it inline on your current model; do NOT delegate and do NOT spin up subagents.
 - Standard (one focused fix or small feature in one area) -> handle it inline unless a helper clearly saves quota.
 - Complex (multi-file, architectural, subtle debugging, or plainly hard) -> use the pool below and escalate as needed.
+- High-stakes override: security work, anything that can destroy data, or a change spanning many files / public APIs is complex **even when the prompt is short**. "fix security vulnerability" is not a trivial request. Send security and data-loss work to `specialist`/`expert`; send broad mechanical sweeps to `helper`.
+
+The calibrated gate is `scripts/classify.py` (`python3 scripts/classify.py --json "<prompt>"`); it
+also encodes those overrides. Treat it as **advice, not policy**: nothing in this setup calls it
+for you, and no quota ledger stops you. Nothing here is enforced at runtime — see
+`docs/enforcement.md`. Apply the rules deliberately and say which model handled each part.
 
 You have a pool of model-specific agents, each pinned to a different model. Route each distinct subtask to the best fit as you go - proactively and automatically, without waiting to be asked:
 

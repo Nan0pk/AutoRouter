@@ -15,6 +15,13 @@ Thanks for helping! This is a **methodology + toolkit**, so contributions are mo
 - **Scripts stay dependency-free** (stdlib Python 3). The schema check in CI may `pip install
   jsonschema`; that dependency must not leak into the core scripts.
 
+## Runtime behaviour is advisory
+
+The gate, the tier ladder and the quota figures are **advice**, not runtime policy. If you add a
+mechanism, either wire it into a harness and test the resulting model choice, or document it as
+advisory in `docs/enforcement.md`. `tests/test_docs_claims.py` fails the build when the docs
+claim enforcement that does not exist, or quote a saving no evaluation backs.
+
 ## Dev setup
 
 - Python 3.11+.

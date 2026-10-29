@@ -50,15 +50,18 @@ what you must wire into a harness.
 | Config validation | **Implemented** — custom checks; `--schema` for real JSON Schema | `scripts/validate_router.py` |
 | Provenance, evidence coverage, "insufficient evidence" tiers | **Implemented** | `scripts/score_models.py`, `schema/scored.schema.json` |
 | Explicit token-mix + cache cost model (no blended input+output) | **Implemented** | `scripts/score_models.py` |
-| Complexity gate (heuristic) | **Implemented and calibrated** (162 labelled prompts; 0% under-routing, 16.5% over-routing on the test split), **but not wired into the OpenCode route** | `scripts/classify.py`, `tests/gate/` |
-| Live quota ledger / budget enforcement | **Requires harness integration** | — |
-| A runtime router enforcing every policy generically | **Requires harness integration** — the OpenCode example relies on the `opencode-auto-model` plugin | `examples/opencode/` |
-| Delegation orchestration (pinned subagents) | **Implemented** (OpenCode agents) | `examples/opencode/agents/` |
+| Complexity gate (heuristic) | **Implemented and calibrated** (162 labelled prompts; 0% under-routing, 16.5% over-routing on the test split), but **advisory** — nothing calls it at runtime | `scripts/classify.py`, `tests/gate/` |
+| Model selection per prompt | **External** — the OpenCode example relies on the `opencode-auto-model` plugin (referenced, not vendored or tested here) | `examples/opencode/` |
+| Quota ledger / budget enforcement | **Not implemented** — quota is descriptive guidance only, with no counter or cap | — |
+| Delegation orchestration (pinned subagents) | **Advisory** (OpenCode agent prompts; nothing verifies the hand-off) | `examples/opencode/agents/` |
 | Return to `auto` after a turn | **Implemented** (OpenCode plugin) | `examples/opencode/plugins/` |
-| Calibrated gate, benchmark provenance, end-to-end evaluation | **Future work** | — |
+| End-to-end evaluation (success, cost, latency, escalations) | **Not yet run** — harness only, no results | `eval/` |
 
-The OpenCode example is a working *integration*, but the complexity gate and quota economics are
-**advisory descriptions, not enforced runtime policy**, unless a harness implements them.
+**Read [`docs/enforcement.md`](docs/enforcement.md) before relying on any of this.** It records,
+per capability, what actually runs versus what is advice. The short version: the methodology and
+the offline checks are real and CI-enforced; the **complexity gate and quota economics are
+advisory**, not runtime policy, unless a harness implements them. **No quota-saving claim in this
+repository is backed by a measurement.**
 
 ---
 

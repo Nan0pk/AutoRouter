@@ -8,6 +8,10 @@ AutoRouter assumes only two primitives. Any harness that can answer these can us
 Everything else (tiers, gate, criteria, delegation pool) is configuration produced by the
 pipeline in the README.
 
+> **Enforced or advisory?** See [`enforcement.md`](enforcement.md). Of the two primitives above,
+> neither is provided by this repository: it produces the config that a harness feeds to its own
+> `chooseModel` / `delegate`. The complexity gate and quota figures are **advisory** here.
+
 ---
 
 ## 1. The harness-agnostic config
@@ -46,7 +50,7 @@ Convert this to your harness's native shape with `scripts/build_router.py`, or h
 
 | Harness style | Where to inject | Notes |
 |---|---|---|
-| **Plugin / hook** (OpenCode plugin, VS Code ext, custom loop) | Pre-request hook: run the gate, then `chooseModel`, then set the session model | Best fidelity; can also inject delegation tools |
+| **Plugin / hook** (OpenCode plugin, VS Code ext, custom loop) | Pre-request hook: run the gate, then `chooseModel`, then set the session model | Best fidelity; can also inject delegation tools. This is the only style that can *enforce* the gate |
 | **Agent config** (OpenCode agents, Claude Code subagents, Codex agents) | One **primary orchestrator** agent + N **subagent** agents with pinned models | No code; relies on the model following the orchestrator prompt |
 | **LLM proxy** (LiteLLM, custom gateway) | Inspect request metadata (first message, session id) and rewrite the target model | Harness-agnostic, but delegation is harder (proxy can't spawn subagents) |
 | **Wrapper script** | Classify + route before invoking the CLI, pass `--model` | Simplest; per-invocation, not per-session |
@@ -83,7 +87,9 @@ See `examples/opencode/`.
 - [ ] Assign `T0`–`T5`; pick the best model per tier (prefer quota within a band).
 - [ ] Write **ceiling** descriptions for every candidate.
 - [ ] Set a **safe fallback** (cheap + capable, `T2`).
-- [ ] Enable the **complexity gate** (`scripts/classify.py` or your port).
+- [ ] Decide whether to **enforce** the complexity gate or accept it as advice. If you enforce it,
+      add a test that asserts the model chosen for a labelled prompt; if you do not, say so in
+      your docs (`scripts/classify.py`, `tests/gate/` are the calibration inputs).
 - [ ] Wire the **decider** (fast, constrained to the candidate set if possible).
 - [ ] Optionally add **delegation** subagents + an orchestrator prompt.
 - [ ] Validate (`scripts/validate_router.py`) and resolve all model IDs.

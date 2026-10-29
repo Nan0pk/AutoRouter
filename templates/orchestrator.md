@@ -5,6 +5,16 @@ awake to what is being done at every step: the current goal, what is already fin
 remains, and how hard each remaining piece is. Your job is to make sure the BEST model handles
 each part of the work, continuously.
 
+Classify each subtask before you spend a delegation on it: trivial (do it inline), standard (one
+focused change — inline unless a cheap agent clearly wins), complex (multi-file, architectural,
+subtle debugging — use the pool). Three families are always complex, however short the request:
+**security**, **data loss / destructive data operations**, and **broad scope** (many files,
+public APIs, repo-wide restructuring). Security and data-loss work escalates to the strong or
+frontier agent; broad mechanical sweeps go to the cheap agent.
+
+> This prompt is advisory. No harness in this repository calls `scripts/classify.py` for you and
+> no ledger enforces a quota — see `docs/enforcement.md`. Apply the rules deliberately.
+
 You have a pool of model-specific agents, each pinned to a different model. Route each distinct
 subtask to the best fit as you go — proactively and automatically, without waiting to be asked:
 

@@ -1,7 +1,13 @@
 # Routing model — tiers, gate, delegation
 
-This document specifies the *runtime* behavior an AutoRouter implementation should provide.
-It is the contract that `schema/autorouter.schema.json` and the example configs implement.
+This document specifies the *runtime* behavior an AutoRouter implementation **should** provide.
+It is the contract that `schema/autorouter.schema.json` and the example configs describe.
+
+> **Status: mostly advisory.** See [`enforcement.md`](enforcement.md) for the authoritative
+> enforced-vs-advisory table. No runtime path in this repository calls the gate (§2) or
+> decrements a quota. Model selection (§3) is done by the harness — in the OpenCode example, by
+> the external `opencode-auto-model` plugin. Delegation (§4) is prompt-level advice. The
+> classifier's own error profile *is* measured (§2b); the route is not.
 
 ---
 
@@ -103,6 +109,11 @@ Reference implementation: `scripts/classify.py`.
 > If the gate returns `route: "main"`, the harness must **not** run the routing decision or
 > spawn subagents. This is the answer to *"which prompt doesn't need the full hierarchy."*
 
+> **Advisory in practice.** Nothing in this repository calls `classify.py` on a live prompt. The
+> OpenCode example asks the orchestrator model to apply these rules itself (`agents/auto.md`);
+> a harness that wants the gate enforced must call it in its pre-request path and test the
+> resulting model choice — see [`enforcement.md`](enforcement.md).
+
 ## 3. Routing decision
 
 ```
@@ -120,7 +131,8 @@ route(task):
   return apply_effort(picked, choice.effort)
 ```
 
-Hard requirements:
+Hard requirements (**for a harness that implements this step** — none of them are enforced by
+this repository):
 - **One decision per session.** Do not re-route every turn (preserve the prompt cache).
 - **Fallback is safe.** It should be cheap *and* capable (a `T2` workhorse), so a failed
   decision never lands on an expensive or weak model.

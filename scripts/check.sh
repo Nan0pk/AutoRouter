@@ -11,7 +11,7 @@ fi
 echo "==> byte-compile scripts"
 python3 -m py_compile scripts/*.py
 
-echo "==> gate unit tests"
+echo "==> unit tests (gate calibration + docs claims)"
 python3 -m unittest discover -s tests -p "test_*.py"
 
 echo "==> gate calibration (under-routing and over-routing reported separately)"
