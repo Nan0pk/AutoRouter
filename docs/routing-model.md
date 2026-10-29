@@ -35,6 +35,8 @@ classify(prompt) -> {
   "tier_hint": "T1" | "T2" | "T3+" | null,
   "delegate": bool,
   "score": int,
+  "risk": ["security" | "data_loss" | "broad_scope", ...],
+  "overrides": [str, ...],          # risk families that forced this class
   "reasons": [str, ...]
 }
 ```
@@ -48,12 +50,53 @@ Decision table:
 | `2 … 4` | standard | `hierarchy` | `T2` | no |
 | `>= 5` | complex | `hierarchy` | `T3+` | yes |
 
-Signals (illustrative — tune per domain):
-- **Length**: very short → negative; long → positive.
+Signals (calibrated in `scripts/classify.py`):
+- **Length**: very short → negative; long → positive — *unless a risk override fires*.
 - **Complexity keywords**: architecture, refactor, migrate, debug, race, multi-file, design,
   performance, security, "why does" → positive.
-- **Simplicity keywords**: rename, format, typo, "what is", explain, one-liner, lookup → negative.
+- **Simplicity keywords**: rename, typo, "what is", one-liner, greetings → negative.
 - **Structure**: code fences, numbered steps, many newlines → positive.
+- **Diagnosis**: a causal question ("why does/why is", "find the root cause", "investigate")
+  about a concrete failure (lock, hang, leak, regression, 500s, corruption) → complex.
+- **Capacity**: a numeric target ("50k events per second", "10x traffic", p99/throughput) →
+  complex.
+- **Structural change**: a structural noun (architecture, schema, pipeline, strategy) plus a
+  change verb (design, migrate, restructure, introduce) → complex.
+
+### 2a. Risk overrides (never route high-stakes work down)
+
+Three families force `complex` + `delegate` regardless of prompt length:
+
+| Family | Examples | Tier hint |
+|---|---|---|
+| `security` | vulnerability, injection, auth bypass, leaked token, privilege escalation, encryption, credential stuffing | `T3+` |
+| `data_loss` | drop/truncate table, purge, migration, roll back, GDPR deletion, double-charge | `T3+` |
+| `broad_scope` | "across 40 files", "all services", public API, monorepo, redesign/rewrite, across the codebase | `T2` (hub + helper) |
+
+The length penalty is **skipped entirely** when an override fires, so
+`"fix security vulnerability"` is complex work rather than a three-word triviality. Broad-scope
+mechanical work still delegates — to a cheap helper, not the frontier — because its difficulty
+is breadth, not depth.
+
+Definitional questions are exempt from the broad-scope override: `"what is a monorepo?"` is a
+lookup, not a repo-wide change.
+
+### 2b. Measured error profile
+
+The gate is calibrated against 162 labelled prompts (`tests/gate/labeled_prompts.csv`).
+Under-routing (hard work sent to a weaker model) and over-routing (strong quota burned on easy
+work) are reported separately, because they do not cost the same:
+
+| Split | n | Under-routing | Over-routing | Risk prompts kept complex |
+|---|---|---|---|---|
+| dev | 83 | 0.0% | 16.9% | 13/13 |
+| test | 79 | 0.0% | 16.5% | 13/13 |
+| all | 162 | 0.0% | 16.7% | 26/26 |
+
+`scripts/calibrate_gate.py` enforces `--max-under 0.05` and `--max-over 0.20` on the test split,
+and fails if any security / data-loss / broad-scope prompt lands below `complex`. The remaining
+over-routing is concentrated in 5–8 word mechanical edits whose object ("add a blank line" vs
+"add pagination") a keyword gate cannot see.
 
 Reference implementation: `scripts/classify.py`.
 
@@ -139,7 +182,7 @@ plugin. Pick one as your documented default and measure both before claiming a q
 | "add pagination to the users endpoint" | standard | `T2` (deepseek-flash) | maybe helper |
 | "why does this deadlock under load?" | complex | `T3` (haiku) → escalate | → `expert` |
 | "redesign the storage layer" | complex | `T2` hub + | → `expert`/`T5` |
-| "clean up 40 files of boilerplate" | standard | cheap (`T1`) | → `helper` |
+| "clean up 40 files of boilerplate" | complex (broad scope) | `T2` hub | → `helper` |
 | "research how our cache invalidation works" | standard | `T2` hub | → `researcher` |
 
 ## 6. Expansion

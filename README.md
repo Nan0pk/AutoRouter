@@ -28,7 +28,8 @@ The point is not a specific config — it's a **reproducible process** you can r
   A router told to *"pick the cheapest model that can handle it well"* will respect an explicit
   capability ceiling.
 - **Not every prompt needs the hierarchy.** A complexity gate sends trivial prompts to the main
-  model and only escalates real work.
+  model and only escalates real work — and it is measured: under-routing and over-routing are
+  counted separately, and security / data-loss / broad-scope prompts always escalate.
 - **Delegation beats re-routing for cache.** Keep the session model fixed; hand subtasks to
   pinned subagents on other models.
 - **Evidence has a shelf life and a shape.** Every benchmark number carries its source, the date
@@ -49,7 +50,7 @@ what you must wire into a harness.
 | Config validation | **Implemented** — custom checks; `--schema` for real JSON Schema | `scripts/validate_router.py` |
 | Provenance, evidence coverage, "insufficient evidence" tiers | **Implemented** | `scripts/score_models.py`, `schema/scored.schema.json` |
 | Explicit token-mix + cache cost model (no blended input+output) | **Implemented** | `scripts/score_models.py` |
-| Complexity gate (heuristic) | **Implemented, but not wired into the OpenCode route** | `scripts/classify.py` |
+| Complexity gate (heuristic) | **Implemented and calibrated** (162 labelled prompts; 0% under-routing, 16.5% over-routing on the test split), **but not wired into the OpenCode route** | `scripts/classify.py`, `tests/gate/` |
 | Live quota ledger / budget enforcement | **Requires harness integration** | — |
 | A runtime router enforcing every policy generically | **Requires harness integration** — the OpenCode example relies on the `opencode-auto-model` plugin | `examples/opencode/` |
 | Delegation orchestration (pinned subagents) | **Implemented** (OpenCode agents) | `examples/opencode/agents/` |
@@ -82,9 +83,13 @@ AutoRouter/
 │       └── router.config.json  # harness-agnostic example
 ├── scripts/
 │   ├── classify.py             # complexity gate (route vs. stay-main, delegate vs. inline)
+│   ├── calibrate_gate.py       # labelled-set calibration: under- vs over-routing
 │   ├── score_models.py         # benchmark + quota CSVs  ->  capability/value tiers
 │   ├── build_router.py         # scored tiers            ->  a starter router config
 │   └── validate_router.py      # validate a router config + resolve model IDs
+├── tests/
+│   ├── gate/labeled_prompts.csv # 162 labelled prompts + risk families
+│   └── test_classify.py         # gate unit + calibration-budget tests
 ├── data/
 │   ├── benchmarks.example.csv  # long-format observations + provenance (Oct-2026 Go data)
 │   └── quota.example.csv       # quota/economics inputs, incl. cache prices

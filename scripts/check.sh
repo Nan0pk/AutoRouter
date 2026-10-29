@@ -11,6 +11,20 @@ fi
 echo "==> byte-compile scripts"
 python3 -m py_compile scripts/*.py
 
+echo "==> gate unit tests"
+python3 -m unittest discover -s tests -p "test_*.py"
+
+echo "==> gate calibration (under-routing and over-routing reported separately)"
+python3 scripts/calibrate_gate.py --split test --max-under 0.05 --max-over 0.20 --json \
+  | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert not d['failures'], d['failures']
+assert d['risk_missed'] == 0, d['risk_missed_cases']
+print(f\"   n={d['n']} under={d['under_rate']:.1%} over={d['over_rate']:.1%} \"
+      f\"risk_kept={d['risk_total'] - d['risk_missed']}/{d['risk_total']}\")
+"
+
 echo "==> complexity gate assertions"
 python3 scripts/classify.py --json "rename foo to bar" \
   | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['route']=='main' and not d['delegate'], d"

@@ -159,6 +159,17 @@ Decide *when not to use the hierarchy*:
 Implement it cheaply: heuristics first (`scripts/classify.py`), optionally a small decision
 model. The gate prevents routing/delegation overhead on prompts that never needed it.
 
+Then **measure the gate itself**, and measure its two errors separately:
+
+- **Under-routing** — hard or high-stakes work sent to a weaker model. Expensive, sometimes
+  dangerous. Budget: ≤5%.
+- **Over-routing** — strong-model quota spent on easy work. Wasteful but safe. Budget: ≤20%.
+
+Three risk families force a prompt up to `complex` no matter how short it is: `security`,
+`data_loss`, `broad_scope`. A four-word "fix security vulnerability" is not a trivial prompt.
+`scripts/calibrate_gate.py` runs the labelled set in `tests/gate/labeled_prompts.csv` and fails
+CI when the error profile regresses.
+
 ## Step 8 — Delegation orchestration (optional, powerful)
 
 To use the best model for *each part* **without** re-routing the main conversation (which

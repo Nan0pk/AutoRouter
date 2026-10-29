@@ -1,0 +1,163 @@
+id,split,label,risk,family,prompt
+g001,dev,trivial,,mechanical,rename foo to bar
+g002,test,trivial,,mechanical,fix the typo in the README
+g003,dev,trivial,,mechanical,format this JSON
+g004,test,trivial,,mechanical,replace tabs with spaces in this file
+g005,dev,trivial,,mechanical,capitalize the first letter of each heading
+g006,test,trivial,,mechanical,add a trailing newline to the file
+g007,dev,trivial,,mechanical,remove the unused import
+g008,test,trivial,,mechanical,bump the version in package.json
+g009,dev,trivial,,mechanical,sort these imports alphabetically
+g010,test,trivial,,mechanical,make this log line lowercase
+g011,dev,trivial,,mechanical,change the button label to Save
+g012,test,trivial,,mechanical,update the copyright year
+g013,dev,trivial,,mechanical,delete this stale comment
+g014,test,trivial,,mechanical,add a comma after the third element
+g015,dev,trivial,,mechanical,reformat this table
+g016,test,trivial,,mechanical,prettify the YAML
+g017,dev,trivial,,mechanical,trim whitespace from these lines
+g018,test,trivial,,mechanical,convert this CSV to JSON
+g019,dev,trivial,,mechanical,change 8080 to 9090 in the config
+g020,test,trivial,,mechanical,remove trailing commas
+g021,dev,trivial,,mechanical,add a blank line between functions
+g022,test,trivial,,mechanical,make the heading level 2 instead of 1
+g023,dev,trivial,,mechanical,one-liner to reverse a string
+g024,test,trivial,,mechanical,fix this spelling mistake in the error message
+g025,dev,trivial,,mechanical,echo the current date
+g026,dev,trivial,,lookup,what is a monad
+g027,test,trivial,,lookup,what does git stash do
+g028,dev,trivial,,lookup,how do I undo the last commit
+g029,test,trivial,,lookup,lookup the HTTP status code 418
+g030,dev,trivial,,lookup,explain what this regex matches
+g031,test,trivial,,lookup,what is the difference between let and const
+g032,dev,trivial,,lookup,show me the npm script list
+g033,test,trivial,,lookup,what's the default port for postgres
+g034,dev,trivial,,lookup,find where fooBar is defined
+g035,test,trivial,,lookup,list the open TODOs
+g036,dev,trivial,,lookup,count the lines in this file
+g037,test,trivial,,lookup,show the diff for one file
+g038,dev,trivial,,lookup,list files in src
+g039,test,trivial,,lookup,print the current git branch
+g040,dev,trivial,,lookup,show me the last commit
+g041,dev,trivial,,chatter,hello
+g042,test,trivial,,chatter,thanks!
+g043,dev,trivial,,chatter,ok
+g044,test,trivial,,chatter,yes please
+g045,dev,trivial,,chatter,continue
+g046,test,trivial,,chatter,"hi, quick question"
+g047,dev,trivial,,chatter,"thanks, that worked"
+g048,test,trivial,,chatter,what is the capital of France
+g049,dev,trivial,,chatter,convert this timestamp to UTC
+g050,test,trivial,,chatter,show me the last error message
+g051,dev,standard,,single-file-feature,add pagination to the users endpoint
+g052,test,standard,,single-file-feature,implement a retry helper for the HTTP client
+g053,dev,standard,,single-file-feature,write a function that parses ISO dates
+g054,test,standard,,single-file-feature,add input validation to the signup form
+g055,dev,standard,,single-file-feature,make the search case-insensitive
+g056,test,standard,,single-file-feature,add a loading spinner to the results table
+g057,dev,standard,,single-file-feature,update the API client to send a user agent
+g058,test,standard,,single-file-feature,add a null check before accessing the config
+g059,dev,standard,,single-file-feature,cache the theme lookup in memory
+g060,test,standard,,single-file-feature,handle the empty response case gracefully
+g061,dev,standard,,single-file-feature,log the request id on errors
+g062,test,standard,,single-file-feature,make the logger respect LOG_LEVEL
+g063,dev,standard,,single-file-feature,add a CLI flag for the output format
+g064,test,standard,,single-file-feature,add type hints to this module
+g065,dev,standard,,single-file-feature,port the date helper to TypeScript
+g066,test,standard,,single-file-feature,make the config loader fail loudly
+g067,dev,standard,,single-file-feature,add a health check endpoint
+g068,test,standard,,single-file-feature,handle pagination in the table view
+g069,dev,standard,,single-file-feature,add a retry to the upload step
+g070,test,standard,,single-file-feature,update the Dockerfile to use python 3.12
+g071,dev,standard,,single-file-feature,add a timeout to the fetch call
+g072,test,standard,,single-file-feature,validate the email format on the client
+g073,dev,standard,,single-file-feature,add a fallback for the missing env var
+g074,test,standard,,single-file-feature,make the button disabled while saving
+g075,dev,standard,,single-file-feature,implement a debounce on the search input
+g076,dev,standard,,bugfix,fix the failing unit test in auth_test.go
+g077,test,standard,,bugfix,refactor the email sender into a class
+g078,dev,standard,,bugfix,fix the off-by-one error in the paginator
+g079,test,standard,,bugfix,write tests for the cart total calculation
+g080,dev,standard,,bugfix,debug the null pointer in the parser
+g081,test,standard,,bugfix,find the bug in this 10-line function
+g082,dev,standard,,bugfix,improve the error message when the file is missing
+g083,test,standard,,bugfix,write a docstring for this class
+g084,dev,standard,,bugfix,optimize this SQL query with an index
+g085,test,standard,,bugfix,replace the deprecated API call
+g086,dev,standard,,bugfix,fix the broken link in the docs
+g087,test,standard,,bugfix,sort the config keys before writing
+g088,dev,standard,,bugfix,fix the flaky assertion in the login test
+g089,test,standard,,bugfix,move the constant into the settings module
+g090,dev,standard,,bugfix,add a unit test for the slugify function
+g091,test,standard,,bugfix,extract the magic number into a constant
+g092,dev,standard,,bugfix,convert the callback to a promise
+g093,test,standard,,bugfix,add basic logging to the worker startup
+g094,dev,standard,,bugfix,write a small script to count requests per day
+g095,test,standard,,bugfix,fix the inconsistent indentation in this function
+g096,dev,standard,,explanation,explain how the cache invalidation works here
+g097,test,standard,,explanation,why is this function returning undefined
+g098,dev,standard,,explanation,explain this stack trace
+g099,test,standard,,explanation,find the source of the duplicate rows
+g100,dev,standard,,explanation,what does this error mean
+g101,test,standard,,explanation,show me how to mock the clock in tests
+g102,dev,standard,,explanation,explain why the tests pass locally but fail in CI
+g103,test,standard,,explanation,walk me through this query plan
+g104,dev,standard,,explanation,describe what this middleware does
+g105,test,standard,,explanation,how does the feature flag service decide
+g106,dev,standard,,explanation,explain the difference between these two SIMD paths
+g107,test,standard,,explanation,why is the container image so large
+g108,dev,standard,,explanation,what is this warning about deprecated TLS
+g109,test,standard,,explanation,summarise what changed in this diff
+g110,dev,standard,,explanation,walk through how the scheduler picks a node
+g111,dev,complex,,debugging,why does this deadlock under load?
+g112,test,complex,,debugging,why does memory usage grow until the pod is OOM-killed?
+g113,dev,complex,,debugging,find the root cause of the intermittent 500s under load
+g114,test,complex,,debugging,why is the queue backing up when the worker pool scales down?
+g115,dev,complex,,debugging,debug the race condition in the connection pool
+g116,test,complex,,debugging,the payment webhook double-charges under retries
+g117,dev,complex,,debugging,"performance regression after the ORM upgrade, find it"
+g118,test,complex,,debugging,"the build is non-deterministic across CI runs, find out why"
+g119,dev,complex,,debugging,why does the index rebuild lock the table
+g120,test,complex,,debugging,"the test suite hangs after the upgrade, find out why"
+g121,dev,complex,,debugging,why do timestamps shift by an hour after deployment
+g122,test,complex,,debugging,"the retry storm takes down the service, explain the feedback loop"
+g123,dev,complex,security,security,fix security vulnerability
+g124,test,complex,security,security,add row-level authorization to the orders API
+g125,dev,complex,security,security,"the auth token is leaking into the logs, fix it"
+g126,test,complex,security,security,implement rate limiting to stop credential stuffing
+g127,dev,complex,security,security,patch the SQL injection in the search endpoint
+g128,test,complex,security,security,add end-to-end encryption for stored messages
+g129,dev,complex,security,security,audit the codebase for unsafe deserialization
+g130,test,complex,security,security,harden the file upload path against path traversal
+g131,dev,complex,security,security,fix the privilege escalation in the admin endpoint
+g132,test,complex,security,security,"the API leaks other users' records, fix and add a regression test"
+g133,dev,complex,data_loss,data-safety,migrate the database from MySQL to Postgres
+g134,test,complex,data_loss,data-safety,make the schema change safe to roll back
+g135,dev,complex,data_loss,data-safety,delete the legacy tables in production
+g136,test,complex,data_loss,data-safety,write a migration that drops the unused column
+g137,dev,complex,data_loss,data-safety,we need to purge user data on account deletion
+g138,test,complex,data_loss,data-safety,"the nightly job truncates the audit table, fix the ordering"
+g139,dev,complex,data_loss,data-safety,investigate why the migration corrupts timestamps
+g140,test,complex,data_loss,data-safety,backfill the new column without locking writes
+g141,dev,complex,,architecture,redesign the storage layer
+g142,test,complex,,architecture,restructure the service into separate modules
+g143,dev,complex,,architecture,rewrite the ingestion pipeline to be idempotent
+g144,test,complex,,architecture,plan the architecture for multi-region failover
+g145,dev,complex,,architecture,design a cache invalidation strategy for the new feed
+g146,test,complex,,architecture,introduce a plugin architecture for the linters
+g147,dev,complex,,architecture,design the observability strategy for the new pipeline
+g148,test,complex,,architecture,break the monolith's billing module into a service
+g149,dev,complex,broad_scope,broad-scope,rename this variable across 40 files without breaking public APIs
+g150,test,complex,broad_scope,broad-scope,refactor the monorepo to share a common build
+g151,dev,complex,broad_scope,broad-scope,"this change breaks the public API, design the deprecation path"
+g152,test,complex,broad_scope,broad-scope,update all 120 services to the new logging format
+g153,dev,complex,broad_scope,broad-scope,refactor every call site of the deprecated client
+g154,test,complex,broad_scope,broad-scope,port the whole test suite from unittest to pytest
+g155,dev,complex,broad_scope,broad-scope,unify the three duplicated auth implementations
+g156,test,complex,broad_scope,broad-scope,replace the hand-rolled state machine with a library across the codebase
+g157,dev,complex,,high-stakes,make the system handle 10x traffic without a rewrite
+g158,test,complex,,high-stakes,implement tenant isolation in the shared schema
+g159,dev,complex,,high-stakes,handle GDPR deletion requests end to end
+g160,test,complex,,high-stakes,make the deployment atomic and reversible
+g161,dev,complex,,high-stakes,reduce the blast radius of a bad config push
+g162,test,complex,,high-stakes,scale the ingestion path to 50k events per second

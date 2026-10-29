@@ -26,9 +26,19 @@ Thanks for helping! This is a **methodology + toolkit**, so contributions are mo
 bash scripts/check.sh
 ```
 
-This is exactly what CI runs: a token-leak guard, byte-compile, complexity-gate assertions,
-scoring, building both harness configs, and validating every config (including the OpenCode
-example against the catalog).
+This is exactly what CI runs: a token-leak guard, byte-compile, gate unit tests, gate
+calibration (under- vs over-routing budgets), scoring, building both harness configs, and
+validating every config (including the OpenCode example against the catalog).
+
+## Changing the complexity gate
+
+- Label new prompts **before** running the classifier (`tests/gate/README.md` has the rubric).
+- Put prompts you did not tune on in `split: test`.
+- `python3 scripts/calibrate_gate.py --split dev` and `--split test` must both stay within the
+  under-routing (≤5%) and over-routing (≤20%) budgets, with zero high-risk prompts below
+  `complex`.
+- Never trade under-routing for over-routing: sending hard work to a weak model is the expensive
+  mistake.
 
 ## Adding or updating a model
 
