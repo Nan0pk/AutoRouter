@@ -31,6 +31,9 @@ The point is not a specific config — it's a **reproducible process** you can r
   model and only escalates real work.
 - **Delegation beats re-routing for cache.** Keep the session model fixed; hand subtasks to
   pinned subagents on other models.
+- **Evidence has a shelf life and a shape.** Every benchmark number carries its source, the date
+  it was collected, the benchmark version, and the conditions it was measured under. A score
+  without provenance is a rumour; a score with thin coverage is not a tier.
 
 ---
 
@@ -44,6 +47,8 @@ what you must wire into a harness.
 | Quota-aware tiers + capability-ceiling descriptions | **Implemented** (config) | `examples/`, `schema/` |
 | Offline scoring → tiers → config builder | **Implemented** | `scripts/score_models.py`, `build_router.py` |
 | Config validation | **Implemented** — custom checks; `--schema` for real JSON Schema | `scripts/validate_router.py` |
+| Provenance, evidence coverage, "insufficient evidence" tiers | **Implemented** | `scripts/score_models.py`, `schema/scored.schema.json` |
+| Explicit token-mix + cache cost model (no blended input+output) | **Implemented** | `scripts/score_models.py` |
 | Complexity gate (heuristic) | **Implemented, but not wired into the OpenCode route** | `scripts/classify.py` |
 | Live quota ledger / budget enforcement | **Requires harness integration** | — |
 | A runtime router enforcing every policy generically | **Requires harness integration** — the OpenCode example relies on the `opencode-auto-model` plugin | `examples/opencode/` |
@@ -66,7 +71,8 @@ AutoRouter/
 │   ├── routing-model.md        # tiers, complexity gate, delegation, pseudo-code
 │   └── harness-integration.md  # how to port this to any harness
 ├── schema/
-│   └── autorouter.schema.json  # JSON Schema for a harness-agnostic router config
+│   ├── autorouter.schema.json  # JSON Schema for a harness-agnostic router config
+│   └── scored.schema.json      # JSON Schema for the scored model table
 ├── examples/
 │   ├── opencode/               # a complete, working OpenCode setup (Go plan)
 │   │   ├── opencode.jsonc
@@ -80,8 +86,8 @@ AutoRouter/
 │   ├── build_router.py         # scored tiers            ->  a starter router config
 │   └── validate_router.py      # validate a router config + resolve model IDs
 ├── data/
-│   ├── benchmarks.example.csv  # capability inputs (real Oct-2026 Go data)
-│   └── quota.example.csv       # quota/economics inputs
+│   ├── benchmarks.example.csv  # long-format observations + provenance (Oct-2026 Go data)
+│   └── quota.example.csv       # quota/economics inputs, incl. cache prices
 └── templates/
     ├── orchestrator.md         # self-aware delegation orchestrator prompt
     └── subagent.md             # pinned-model subagent template
@@ -97,10 +103,14 @@ The pipeline mirrors how this repo's OpenCode example was made:
 # 1. Complexity gate — does a prompt need the hierarchy at all?
 python3 scripts/classify.py "rename this variable"
 
-# 2. Score models from capability + quota data
+# 2. Score models from capability + quota data.
+#    Each score reports its evidence coverage; sparse models get
+#    "insufficient evidence" instead of a tier. Cost is priced from an
+#    explicit token mix + cache model, not a blended input+output number.
 python3 scripts/score_models.py \
   --benchmarks data/benchmarks.example.csv \
   --quota data/quota.example.csv \
+  --input-tokens 20000 --output-tokens 2000 --cache-hit-rate 0.5 \
   --out scored.json
 
 # 3. Generate a starter router config from the scored tiers

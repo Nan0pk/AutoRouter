@@ -1,21 +1,98 @@
-model,provider,aa_intelligence,tb4,swe_bench,deepswe,lmarena_coding,gpqa,notes
-gemini-4-argon,opencode-go,50,57.6,n/a,77.9,1550,94.9,"best overall; 50 percent off through Nov 2026"
-kimi-k3.1-pro,opencode-go,46,65.7,n/a,75.5,n/a,94.2,"best agentic coding; slow; tiny allowance"
-glm-5.3,opencode-go,32,38.9,95.4,66.9,1520,88.1,"strong SWE plus solid agentic"
-deepseek-v4-pro,opencode-go,23,14.1,96.4,62.7,1500,92.4,"SWE number 2 but weak long-agentic"
-claude-haiku-5-5,opencode-go,36,39.2,n/a,69.3,1489,93.0,"best quality-per-quota"
-mimo-v2.6-pro,opencode-go,30,31.3,91.8,71.9,1538,94.5,"reward-hacking caveat on coding"
-deepseek-v4.1-flash,opencode-go,32,31.8,82.3,74.5,1523,90.9,"number 1 open; largest paid quota"
-muse-spark-1.3-contributor,opencode-go,36,10.6,94.3,75.4,1534,93.5,"trains on data; weak agentic"
-glm-5.3-flash,opencode-go,n/a,37.4,92.0,63.4,1526,86.4,"cheap; strong SWE"
-qwen3.8-max,opencode-go,34,34.3,85.6,56.6,1525,93.7,"slow"
-grok-4.7,opencode-go,34,37.6,58.6,71.0,1494,69.4,"source conflict on SWE/GPQA"
-step-5-preview,opencode-go,29,31.8,89.0,67.7,1506,93.5,"open weights"
-minimax-m3.1-flash,opencode-go,29,25.3,82.0,73.7,n/a,92.9,"good value flash"
-kimi-k3,opencode-go,n/a,17.2,93.4,67.5,1540,92.9,"strong SWE; weak agentic"
-gpt-6-luna,opencode-go,28,13.6,n/a,66.6,1506,n/a,"cheap; weak agentic"
-qwen3.8-flash,opencode-go,n/a,n/a,n/a,n/a,n/a,n/a,"little public benchmark data"
-hy4-preview,opencode-go,n/a,8.1,92.5,64.3,n/a,92.3,"preview"
-mimo-v2.6-flash,opencode-go,27,24.2,89.2,67.9,1510,89.6,"cheap volume; reward-hacking caveat"
-longcat-2.0,opencode-go,n/a,n/a,n/a,n/a,n/a,78.0,"SWE-Pro 59.5 official"
-beam-free,opencode-go,n/a,4.0,81.6,43.3,1505,90.6,"weak agentic; free"
+provider,model,metric,value,source,source_kind,benchmark_version,collected_on,conditions,notes
+opencode-go,gemini-4-argon,aa_intelligence,50,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,gemini-4-argon,tb4,57.6,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,50 percent off through Nov 2026 does not affect capability
+opencode-go,gemini-4-argon,deepswe,77.9,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,gemini-4-argon,lmarena_coding,1550,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,gemini-4-argon,gpqa,94.9,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,kimi-k3.1-pro,aa_intelligence,46,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,kimi-k3.1-pro,tb4,65.7,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,kimi-k3.1-pro,deepswe,75.5,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,kimi-k3.1-pro,gpqa,94.2,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,glm-5.3,aa_intelligence,32,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,glm-5.3,tb4,38.9,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,glm-5.3,swe_bench,95.4,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,glm-5.3,deepswe,66.9,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,glm-5.3,lmarena_coding,1520,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,glm-5.3,gpqa,88.1,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,deepseek-v4-pro,aa_intelligence,23,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,deepseek-v4-pro,tb4,14.1,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,deepseek-v4-pro,swe_bench,96.4,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,deepseek-v4-pro,deepswe,62.7,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,deepseek-v4-pro,lmarena_coding,1500,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,deepseek-v4-pro,gpqa,92.4,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,claude-haiku-5-5,aa_intelligence,36,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,claude-haiku-5-5,tb4,39.2,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,claude-haiku-5-5,deepswe,69.3,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,claude-haiku-5-5,lmarena_coding,1489,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,claude-haiku-5-5,gpqa,93.0,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,mimo-v2.6-pro,aa_intelligence,30,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,mimo-v2.6-pro,tb4,31.3,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,mimo-v2.6-pro,swe_bench,91.8,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,reward-hacking caveat on coding benchmarks
+opencode-go,mimo-v2.6-pro,deepswe,71.9,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,mimo-v2.6-pro,lmarena_coding,1538,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,mimo-v2.6-pro,gpqa,94.5,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,deepseek-v4.1-flash,aa_intelligence,32,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,deepseek-v4.1-flash,tb4,31.8,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,deepseek-v4.1-flash,swe_bench,82.3,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,deepseek-v4.1-flash,deepswe,74.5,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,deepseek-v4.1-flash,lmarena_coding,1523,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,deepseek-v4.1-flash,gpqa,90.9,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,muse-spark-1.3-contributor,aa_intelligence,36,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,muse-spark-1.3-contributor,tb4,10.6,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,muse-spark-1.3-contributor,swe_bench,94.3,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,muse-spark-1.3-contributor,deepswe,75.4,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,muse-spark-1.3-contributor,lmarena_coding,1534,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,muse-spark-1.3-contributor,gpqa,93.5,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,glm-5.3-flash,tb4,37.4,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,glm-5.3-flash,swe_bench,92.0,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,glm-5.3-flash,deepswe,63.4,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,glm-5.3-flash,lmarena_coding,1526,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,glm-5.3-flash,gpqa,86.4,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,qwen3.8-max,aa_intelligence,34,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,qwen3.8-max,tb4,34.3,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,qwen3.8-max,swe_bench,85.6,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,qwen3.8-max,deepswe,56.6,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,qwen3.8-max,lmarena_coding,1525,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,qwen3.8-max,gpqa,93.7,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,grok-4.7,aa_intelligence,34,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,grok-4.7,tb4,37.6,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,grok-4.7,swe_bench,58.6,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,source conflict: a vendor card reports a much higher figure; independent board retained per methodology
+opencode-go,grok-4.7,deepswe,71.0,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,grok-4.7,lmarena_coding,1494,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,grok-4.7,gpqa,69.4,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,source conflict with vendor card; independent reading retained
+opencode-go,step-5-preview,aa_intelligence,29,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,step-5-preview,tb4,31.8,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,step-5-preview,swe_bench,89.0,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,step-5-preview,deepswe,67.7,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,step-5-preview,lmarena_coding,1506,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,step-5-preview,gpqa,93.5,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,minimax-m3.1-flash,aa_intelligence,29,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,minimax-m3.1-flash,tb4,25.3,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,minimax-m3.1-flash,swe_bench,82.0,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,minimax-m3.1-flash,deepswe,73.7,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,minimax-m3.1-flash,gpqa,92.9,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,kimi-k3,tb4,17.2,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,kimi-k3,swe_bench,93.4,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,kimi-k3,deepswe,67.5,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,kimi-k3,lmarena_coding,1540,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,kimi-k3,gpqa,92.9,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,gpt-6-luna,aa_intelligence,28,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,gpt-6-luna,tb4,13.6,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,gpt-6-luna,deepswe,66.6,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,gpt-6-luna,lmarena_coding,1506,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,hy4-preview,tb4,8.1,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,hy4-preview,swe_bench,92.5,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,hy4-preview,deepswe,64.3,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,hy4-preview,gpqa,92.3,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,mimo-v2.6-flash,aa_intelligence,27,Artificial Analysis Intelligence Index,aggregate,2026-10,2026-10-18,composite reasoning index; provider-default settings; no tools,
+opencode-go,mimo-v2.6-flash,tb4,24.2,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,mimo-v2.6-flash,swe_bench,89.2,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,reward-hacking caveat on coding benchmarks
+opencode-go,mimo-v2.6-flash,deepswe,67.9,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,mimo-v2.6-flash,lmarena_coding,1510,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,mimo-v2.6-flash,gpqa,89.6,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,
+opencode-go,longcat-2.0,swe_pro,59.5,SWE-bench Pro (vendor card),lab_card,2026-09,2026-10-01,self-reported; harness not disclosed; treat as upper bound,lab card only; no independent agentic evidence
+opencode-go,beam-free,tb4,4.0,Terminal-Bench 4.0,independent,v4.0,2026-10-12,agentic terminal tasks; tools on; 5 trials; mean reward,
+opencode-go,beam-free,swe_bench,81.6,SWE-bench Verified,independent,verified-2026-04,2026-09-30,single-shot patch generation; 500 instances; pass@1,
+opencode-go,beam-free,deepswe,43.3,DeepSWE,independent,2026-09,2026-10-05,long-horizon agentic coding; tools on; 3 trials,
+opencode-go,beam-free,lmarena_coding,1505,LMArena coding board,independent,2026-10,2026-10-20,human pairwise preference; coding category only; Elo,
+opencode-go,beam-free,gpqa,90.6,GPQA Diamond,independent,2026,2026-09-22,no tools; pass@1; 198 questions,

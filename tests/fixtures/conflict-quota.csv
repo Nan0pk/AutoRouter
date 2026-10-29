@@ -1,0 +1,2 @@
+provider,model,monthly_limit_usd,req_per_month,input_cost,output_cost,cache_read_cost,cache_write_cost,notes
+test-provider,test-conflict,10,1000,1.0,2.0,0.1,1.25,

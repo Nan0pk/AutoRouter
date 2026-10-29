@@ -21,14 +21,20 @@ jobs:
       - name: Self-check (gate, score, build, validate)
         run: bash scripts/check.sh
 
-      - name: Schema validation (generic example)
+      - name: Schema validation (router config + scored table)
         run: |
           python3 -m pip install --quiet jsonschema
           python3 - <<'PY'
           import json
           import jsonschema
-          schema = json.load(open("schema/autorouter.schema.json"))
-          data = json.load(open("examples/generic/router.config.json"))
-          jsonschema.validate(data, schema)
+
+          jsonschema.validate(
+              json.load(open("examples/generic/router.config.json")),
+              json.load(open("schema/autorouter.schema.json")),
+          )
+          jsonschema.validate(
+              json.load(open("scored.json")),
+              json.load(open("schema/scored.schema.json")),
+          )
           print("schema ok")
           PY

@@ -71,8 +71,15 @@ def main():
 
     data = json.load(open(args.scored, encoding="utf-8"))
     rows = data["models"] if isinstance(data, dict) else data
-    rows = [r for r in rows if r.get("capability") is not None]
+    skipped = [r for r in rows if r.get("tier") is None or r.get("capability") is None]
+    rows = [r for r in rows if r.get("tier") is not None and r.get("capability") is not None]
     rows.sort(key=lambda r: (r["tier"], -(r.get("capability") or 0)))
+    for r in skipped:
+        print(
+            f"skip {r.get('provider')}/{r.get('model')}: "
+            f"{r.get('tier_status') or 'insufficient evidence'} (coverage {r.get('coverage')})",
+            file=sys.stderr,
+        )
 
     fbrow = pick_fallback(rows)
     fallback = ref(fbrow) if fbrow else None
@@ -93,6 +100,8 @@ def main():
                 "id": ref(r),
                 "tier": r["tier"],
                 "capability": r.get("capability"),
+                "evidence_coverage": r.get("coverage"),
+                "evidence_status": r.get("tier_status"),
                 "quota": {
                     "requests_per_month": r.get("req_per_month"),
                     "monthly_limit_usd": r.get("monthly_limit_usd"),

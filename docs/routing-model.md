@@ -19,6 +19,11 @@ It is the contract that `schema/autorouter.schema.json` and the example configs 
 Each candidate carries: `id`, `tier`, `capability` (0–1), `quota` (requests/mo or $/mo),
 and a `description` with an explicit **ceiling**.
 
+A candidate also carries its evidence state: `evidence_coverage` (0–1, the share of metric
+weight actually measured with provenance) and `evidence_status` (`ok` or
+`insufficient evidence`). A model whose evidence is insufficient has no tier and must not be
+selected by the ladder; route to it only by explicit human choice.
+
 ## 2. Complexity gate
 
 The gate runs **before** routing and returns one of three classes.

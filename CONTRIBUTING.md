@@ -5,7 +5,8 @@ Thanks for helping! This is a **methodology + toolkit**, so contributions are mo
 
 ## Ground rules
 
-- **Never fabricate benchmark numbers.** If data is missing, mark it `n/a`.
+- **Never fabricate benchmark numbers.** If data is missing, omit the observation. Recorded
+  conflicts are kept, not averaged.
 - **Prefer agentic evidence** (Terminal-Bench, DeepSWE) over saturated single-shot SWE-bench.
 - **Discount reward-hacked / leaky models** and record the caveat.
 - **Every model description must include a capability ceiling** (`"Not for ..."`). The validator
@@ -31,8 +32,10 @@ example against the catalog).
 
 ## Adding or updating a model
 
-1. Add a row to `data/benchmarks.example.csv` (capability) and `data/quota.example.csv`
-   (economics). Include the `provider` column.
+1. Add **one row per observation** to `data/benchmarks.example.csv` (long format, joined on
+   `provider`+`model`) and one row per model to `data/quota.example.csv` (economics, including
+   `cache_read_cost`/`cache_write_cost`). Never add a number without `source`, `source_kind`,
+   `benchmark_version`, `collected_on`, and `conditions` — the scorer rejects it.
 2. Run `python3 scripts/score_models.py --benchmarks … --quota … --out scored.json`.
 3. **Review the assigned tier.** The tool is a starter; apply judgement — e.g. a model with huge
    SWE-bench but weak agentic scores may deserve a lower tier than the raw number suggests.
@@ -50,9 +53,13 @@ example against the catalog).
 
 ## Data formats
 
-- `benchmarks.example.csv` — `model,provider,aa_intelligence,tb4,swe_bench,deepswe,lmarena_coding,gpqa,notes`
-  (use `n/a` for missing).
-- `quota.example.csv` — `model,provider,monthly_limit_usd,req_per_month,input_cost,output_cost,notes`.
+- `benchmarks.example.csv` — long format:
+  `provider,model,metric,value,source,source_kind,benchmark_version,collected_on,conditions,notes`.
+  Omit a row entirely when a model was not measured; do not write `n/a` placeholders.
+  `source_kind` must be `independent`, `aggregate`, or `lab_card`.
+- `quota.example.csv` — `provider,model,monthly_limit_usd,req_per_month,input_cost,output_cost,cache_read_cost,cache_write_cost,notes`.
+- `scored.json` (generated) — validated against `schema/scored.schema.json`; a model below
+  `--min-coverage` has `tier: null` and `tier_status: "insufficient evidence"`.
 - `data/catalog.example.json` — list of `{providerID, id, enabled, status, variants: [id, …]}`.
 
 ## Pull requests

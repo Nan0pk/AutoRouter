@@ -49,6 +49,34 @@ Rank sources by usefulness **for coding agents**:
 5. **Reasoning** — GPQA-Diamond, AIME, HLE, ARC-AGI.
 6. **Lab model cards** — self-reported; treat as an *upper bound* and cross-check.
 
+### Record provenance per observation
+
+A benchmark value is only usable if you can re-derive it later. `data/benchmarks.example.csv`
+is therefore **long format** — one row per `(provider, model, metric)` observation — and every
+row carries:
+
+| Column | Meaning |
+|---|---|
+| `source` | the board or card that published the number |
+| `source_kind` | `independent`, `aggregate`, or `lab_card` |
+| `benchmark_version` | the benchmark/leaderboard revision (e.g. `TB4.0`, `verified-2026-04`) |
+| `collected_on` | ISO date you read it |
+| `conditions` | tool use, trials, temperature, context, subset — whatever changes the number |
+| `notes` | caveats: reward-hacking, conflicts, preview status |
+
+`scripts/score_models.py` joins this table with quotas on **(provider, model)** — not on model
+name alone, which collides across providers. Two observations that disagree by more than 5%
+are a **recorded conflict**: the independent board is retained, the disagreement is emitted in
+`conflicts`, and nothing is averaged silently.
+
+### Uncertainty is a first-class output
+
+Each model reports **evidence coverage** — the share of metric weight that actually has a
+provenance-tracked observation. If coverage drops below `--min-coverage` (default `0.5`), or no
+weighted metric has evidence, the model gets `"tier": null` and
+`"tier_status": "insufficient evidence"` instead of a tier. It is still listed, with its costs,
+so it can be routed to manually — but no automated ladder is built from a guess.
+
 ### Weighting rules
 
 - For coding agents, **prefer agentic evidence** over saturated single-shot SWE-bench.
@@ -56,7 +84,8 @@ Rank sources by usefulness **for coding agents**:
   discount the affected model's coding score.
 - **Reconcile conflicts.** When a lab card and an independent board disagree, prefer the
   independent board and record the conflict. Never average silently.
-- **Never fabricate.** Mark missing data `n/a` and let the tier reflect uncertainty.
+- **Never fabricate or backfill.** A missing observation is absent, never `0` or an average of
+  other models. Let coverage, not imputation, carry the uncertainty.
 
 ## Step 4 — Capability × quota = value
 
@@ -65,8 +94,23 @@ Turn evidence into two numbers per model:
 - **Capability** — a normalized 0–1 score, e.g.
   `0.30·DeepSWE + 0.25·TerminalBench + 0.15·SWE-bench + 0.15·ArenaCoding + 0.15·AA`.
   (Weights are yours to choose — document them. `scripts/score_models.py` makes them a flag.)
-- **Value** — capability per unit of scarce resource:
-  `capability / blended_cost` and `capability × log(capacity)`.
+- **Value** — capability per unit of scarce resource, using an **explicit token mix + cache
+  model** rather than a blended input+output price:
+
+  ```
+  cached   = input_tokens × cache_hit_rate
+  uncached = input_tokens − cached
+  cost_per_request = (uncached × cache_write_cost
+                    + cached   × cache_read_cost
+                    + output_tokens × output_cost) / 1e6
+
+  value    = capability / (0.001 + cost_per_request)
+  capacity = capability × log10(req_per_month + 10)
+  ```
+
+  The token mix, cache-hit rate, and averaging window are recorded in the output under
+  `cost_model`, so a cost claim is reproducible and comparable. A blended per-token price hides
+  the fact that most coding traffic is long cached prompt reads.
 
 Plot the **cost/capability frontier**. The frontier *is* your model ladder: models inside it are
 redundant, models on it are the ones worth routing to.

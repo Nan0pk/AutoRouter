@@ -31,6 +31,17 @@
           "id": { "$ref": "#/definitions/modelRef" },
           "tier": { "type": "string", "enum": ["T0", "T1", "T2", "T3", "T4", "T5"] },
           "capability": { "type": "number", "minimum": 0, "maximum": 1 },
+          "evidence_coverage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Fraction of metric weight backed by provenance-tracked evidence (from score_models.py)."
+          },
+          "evidence_status": {
+            "type": "string",
+            "enum": ["ok", "insufficient evidence"],
+            "description": "A model with insufficient evidence must not be routed to on capability grounds."
+          },
           "quota": {
             "type": "object",
             "additionalProperties": false,
