@@ -90,6 +90,10 @@ AutoRouter/
 │   ├── score_models.py         # benchmark + quota CSVs  ->  capability/value tiers
 │   ├── build_router.py         # scored tiers            ->  a starter router config
 │   └── validate_router.py      # validate a router config + resolve model IDs
+├── eval/                       # task set + arm comparison (no measured run yet)
+│   ├── tasks.jsonl             # 13 self-contained tasks with declarative checks
+│   ├── pins.json               # pinned models, settings, costs, task-set hash
+│   └── run_eval.py             # fixed-workhorse vs fixed-strong vs AutoRouter
 ├── tests/
 │   ├── gate/labeled_prompts.csv # 162 labelled prompts + risk families
 │   └── test_classify.py         # gate unit + calibration-budget tests
@@ -158,6 +162,17 @@ Everything else is configuration. See **[docs/harness-integration.md](docs/harne
 for injection points (plugins/hooks, agent configs, or an LLM proxy) and per-harness notes.
 
 ---
+
+## Evaluation (and what it does not prove)
+
+`eval/` compares three arms on the same task set: a fixed workhorse, a fixed strong model, and
+AutoRouter. It reports success, cost, quota consumed, latency, retries/escalations, routing
+overhead, and every failure case, with models, prices and settings pinned in `eval/pins.json`.
+
+**No measured run has been committed yet.** The harness runs in CI in synthetic mode, which tests
+the plumbing and is explicitly not evidence. So the quota-saving argument in this README is a
+design hypothesis, not a result — see [`docs/enforcement.md`](docs/enforcement.md#claims) and
+[`eval/README.md`](eval/README.md#status).
 
 ## Design principles
 

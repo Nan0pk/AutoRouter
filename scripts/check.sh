@@ -14,6 +14,9 @@ python3 -m py_compile scripts/*.py
 echo "==> unit tests (gate calibration + docs claims)"
 python3 -m unittest discover -s tests -p "test_*.py"
 
+echo "==> eval harness self-test (synthetic; proves the plumbing, not the router)"
+python3 eval/run_eval.py --self-test
+
 echo "==> gate calibration (under-routing and over-routing reported separately)"
 python3 scripts/calibrate_gate.py --split test --max-under 0.05 --max-over 0.20 --json \
   | python3 -c "

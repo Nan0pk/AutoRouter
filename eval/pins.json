@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "task_set": "eval/tasks.jsonl",
+  "task_set_sha256": "db04d387c1457aa24c15a08a5e93a3ef366232d49cfbd974859c08a30a4029b6",
+  "pinned_on": "2026-10-29",
+  "models": {
+    "opencode-go/deepseek-v4.1-flash": {
+      "role": "workhorse",
+      "version": "v4.1",
+      "input_cost": 0.15,
+      "output_cost": 0.6,
+      "cache_read_cost": 0.015,
+      "cache_write_cost": 0.1875,
+      "req_per_month": 173330,
+      "monthly_limit_usd": 80
+    },
+    "opencode-go/mimo-v2.6-flash": {
+      "role": "workhorse",
+      "version": "v2.6",
+      "input_cost": 0.14,
+      "output_cost": 0.28,
+      "cache_read_cost": 0.014,
+      "cache_write_cost": 0.175,
+      "req_per_month": 150400,
+      "monthly_limit_usd": 60
+    },
+    "opencode-go/claude-haiku-5-5": {
+      "role": "specialist",
+      "version": "5.5",
+      "input_cost": 0.1,
+      "output_cost": 0.5,
+      "cache_read_cost": 0.01,
+      "cache_write_cost": 0.125,
+      "req_per_month": 19230,
+      "monthly_limit_usd": 15
+    },
+    "opencode-go/gemini-4-argon": {
+      "role": "strong",
+      "version": "4",
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "cache_read_cost": 0.2,
+      "cache_write_cost": 2.5,
+      "req_per_month": 2120,
+      "monthly_limit_usd": 30
+    }
+  },
+  "tiers": {
+    "T1": {
+      "role": "workhorse",
+      "model": "opencode-go/mimo-v2.6-flash"
+    },
+    "T2": {
+      "role": "workhorse",
+      "model": "opencode-go/deepseek-v4.1-flash"
+    },
+    "T3": {
+      "role": "specialist",
+      "model": "opencode-go/claude-haiku-5-5"
+    },
+    "T5": {
+      "role": "strong",
+      "model": "opencode-go/gemini-4-argon"
+    }
+  },
+  "settings": {
+    "temperature": 0,
+    "max_tokens": 2048,
+    "timeout_s": 600,
+    "retry_budget": 1,
+    "tool_policy": "repo-local files only; no network",
+    "sandbox": "fresh copy of eval/fixtures/<task> per attempt",
+    "verification": "declarative checks only; model output is never executed"
+  },
+  "cost_model": {
+    "input_tokens": 20000,
+    "output_tokens": 2000,
+    "cache_hit_rate": 0.5
+  },
+  "stub": {
+    "warning": "SYNTHETIC: the stub executor encodes assumed behaviour, so its results are plumbing tests, never evidence.",
+    "latency_ms": {
+      "workhorse": 400,
+      "specialist": 800,
+      "strong": 1500
+    },
+    "tokens": {
+      "workhorse": {
+        "in": 6000,
+        "out": 700
+      },
+      "specialist": {
+        "in": 8000,
+        "out": 900
+      },
+      "strong": {
+        "in": 12000,
+        "out": 1400
+      }
+    }
+  }
+}

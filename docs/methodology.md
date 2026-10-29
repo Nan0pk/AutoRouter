@@ -193,6 +193,21 @@ See `templates/orchestrator.md` and `examples/opencode/agents/auto.md`.
 
 ---
 
+## Step 10 — Evaluate the router, not just the classifier
+
+Gating and scoring are inputs; the output that matters is end-to-end behaviour. Run the same task
+set through a fixed cheap model, a fixed strong model, and the router, and report:
+
+- **success** (all checks pass) and partial checks,
+- **cost/quota** consumed, and cost per success,
+- **latency**, retries and escalations,
+- **routing overhead** (the gate's own time), reported separately,
+- **failure cases** — every one, with the gate decision that led there.
+
+Pin model versions, prices, temperature, timeouts and the task-set hash, or the comparison is not
+reproducible. `eval/` is a working harness for this; until it has a measured run, do not claim a
+quota win.
+
 ## The one-line philosophy
 
 > Judge capability from agentic evidence, budget it against real quota, compress it into tiers,

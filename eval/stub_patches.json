@@ -1,0 +1,125 @@
+{
+  "broad-validate": {
+    "files": {
+      "a.py": "import json\n\n\ndef load(path):\n    with open(path) as f:\n        cfg = json.load(f)\n    if not isinstance(cfg, dict):\n        raise ValueError(\"config must be a JSON object\")\n    return cfg\n",
+      "b.py": "import json\n\n\ndef load(path):\n    with open(path) as f:\n        cfg = json.load(f)\n    if not isinstance(cfg, dict):\n        raise ValueError(\"config must be a JSON object\")\n    return cfg\n",
+      "c.py": "import json\n\n\ndef load(path):\n    with open(path) as f:\n        cfg = json.load(f)\n    if not isinstance(cfg, dict):\n        raise ValueError(\"config must be a JSON object\")\n    return cfg\n"
+    },
+    "solvable_by": [
+      "workhorse",
+      "specialist",
+      "strong"
+    ]
+  },
+  "bug-null": {
+    "files": {
+      "user.py": "def display_name(user):\n    if user is None:\n        return \"\"\n    return user.profile.name\n"
+    },
+    "solvable_by": [
+      "workhorse",
+      "specialist",
+      "strong"
+    ]
+  },
+  "bug-offbyone": {
+    "files": {
+      "paginator.py": "def page(items, size, index):\n    start = index * size\n    return items[start : start + size]\n"
+    },
+    "solvable_by": [
+      "workhorse",
+      "specialist",
+      "strong"
+    ]
+  },
+  "bug-test": {
+    "files": {
+      "calc.py": "def add(a, b):\n    return a + b\n"
+    },
+    "solvable_by": [
+      "workhorse",
+      "specialist",
+      "strong"
+    ]
+  },
+  "data-migrate": {
+    "files": {
+      "migrate.py": "def upgrade(conn):\n    cur = conn.cursor()\n    cur.execute(\"BEGIN\")\n    try:\n        cur.execute(\"ALTER TABLE users DROP COLUMN legacy_flag\")\n        conn.commit()\n    except Exception:\n        cur.execute(\"ROLLBACK\")\n        raise\n"
+    },
+    "solvable_by": [
+      "specialist",
+      "strong"
+    ]
+  },
+  "debug-cache": {
+    "files": {
+      "cache.py": "class Cache:\n    def __init__(self):\n        self.data = {}\n\n    def get(self, key):\n        return self.data.get(key)\n\n    def put(self, key, value):\n        self.data[key] = value\n\n    def invalidate(self, key):\n        self.data.pop(key, None)\n"
+    },
+    "solvable_by": [
+      "specialist",
+      "strong"
+    ]
+  },
+  "debug-mutation": {
+    "files": {
+      "aggregate.py": "def total_by_key(rows):\n    totals = {}\n    for row in rows:\n        totals[row[\"k\"]] = totals.get(row[\"k\"], 0) + row[\"v\"]\n    for key in list(totals):\n        if totals[key] == 0:\n            del totals[key]\n    return totals\n"
+    },
+    "solvable_by": [
+      "specialist",
+      "strong"
+    ]
+  },
+  "mech-import": {
+    "files": {
+      "util.py": "import json\n\n\ndef load(path):\n    with open(path) as f:\n        return json.load(f)\n"
+    },
+    "solvable_by": [
+      "workhorse",
+      "specialist",
+      "strong"
+    ]
+  },
+  "mech-port": {
+    "files": {
+      "config.yaml": "server:\n  host: localhost\n  port: 9090\n  workers: 4\n"
+    },
+    "solvable_by": [
+      "workhorse",
+      "specialist",
+      "strong"
+    ]
+  },
+  "mech-rename": {
+    "files": {
+      "app.py": "class Account:\n    def __init__(self, name):\n        self.name = name\n\n\ndef get_user(user):\n    return user.name\n"
+    },
+    "solvable_by": [
+      "workhorse",
+      "specialist",
+      "strong"
+    ]
+  },
+  "sec-path": {
+    "files": {
+      "files.py": "import os\n\n\ndef read_file(base, name):\n    path = os.path.join(base, os.path.basename(name))\n    with open(path) as f:\n        return f.read()\n"
+    },
+    "solvable_by": [
+      "strong"
+    ]
+  },
+  "sec-shell": {
+    "files": {
+      "archive.py": "import subprocess\n\n\ndef extract(path, dest):\n    subprocess.run([\"tar\", \"-xf\", path, \"-C\", dest], check=True)\n"
+    },
+    "solvable_by": [
+      "strong"
+    ]
+  },
+  "sec-sqli": {
+    "files": {
+      "repo.py": "def find_user(conn, name):\n    cur = conn.cursor()\n    cur.execute(\"SELECT id, name FROM users WHERE name = ?\", (name,))\n    return cur.fetchall()\n"
+    },
+    "solvable_by": [
+      "strong"
+    ]
+  }
+}

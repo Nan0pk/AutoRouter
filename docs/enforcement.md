@@ -66,7 +66,8 @@ Until one of those exists, treat every routing and quota statement in this repo 
 
 - **Quota savings are unvalidated.** No measured run compares AutoRouter against a fixed model.
   The argument that routing cheap work down saves quota is a design rationale, not a result.
-  See `eval/` for the harness that would produce the number, and its current status.
+  See [`eval/`](../eval/README.md) for the harness that would produce the number, and its current
+  status: built and CI-tested, **no measured run committed**.
 - **Gate accuracy is measured, but only for the classifier.** 0% under-routing / ~17%
   over-routing on 162 labelled prompts (`tests/gate/README.md`). That is a property of
   `classify.py`, not of any router that may or may not call it.
