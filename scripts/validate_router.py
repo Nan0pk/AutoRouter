@@ -107,7 +107,17 @@ def main():
     cfg = original
     models = cfg.get("models")
     if models is None and "plugins" in cfg:
-        opts = cfg["plugins"][0].get("options", {})
+        # Plugin order is meaningful at runtime (hooks run in list order), so
+        # find the entry that actually carries the model table instead of
+        # assuming it is first.
+        entries = [p for p in cfg["plugins"] if isinstance(p, dict)]
+        entry = next(
+            (p for p in entries
+             if isinstance(p.get("options"), dict)
+             and p["options"].get("models") is not None),
+            entries[0] if entries else {},
+        )
+        opts = entry.get("options", {}) if isinstance(entry, dict) else {}
         models = opts.get("models")
         if isinstance(models, dict):
             models = [{"id": k, "description": v} for k, v in models.items()]

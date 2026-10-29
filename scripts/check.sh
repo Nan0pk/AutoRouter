@@ -185,6 +185,10 @@ python3 scripts/validate_router.py --config examples/opencode/opencode.jsonc --c
 python3 scripts/validate_router.py --config my-router.json
 python3 scripts/validate_router.py --config generic.json
 
+echo "==> validator: plugin order does not hide the model table"
+python3 scripts/validate_router.py --config tests/fixtures/plugin-order-router-first.json | tail -1 \
+  | grep -q "^OK$"
+
 echo "==> validator regression: string-form variants"
 out=$(python3 scripts/validate_router.py --config tests/fixtures/variant-string.json --catalog data/catalog.example.json 2>&1 || true)
 if printf '%s' "$out" | grep -q "Traceback"; then
@@ -193,6 +197,9 @@ fi
 echo "   ok (no crash)"
 
 if command -v node >/dev/null 2>&1; then
+  echo "==> node: auto-model-reset behaviour (manual models are never reset)"
+  node --test examples/opencode/plugins/auto-model-reset/index.test.js
+
   echo "==> node syntax check (example plugins)"
   node --input-type=module -e "await import('./examples/opencode/plugins/auto-model-reset/index.js')" >/dev/null
 fi

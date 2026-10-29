@@ -16,7 +16,7 @@ it — `tests/test_docs_claims.py` fails the build when they do not.
 | Model selection per prompt | **External** | The `opencode-auto-model` plugin named in `examples/opencode/opencode.jsonc`. It is referenced, not vendored, and not exercised by this repo's CI | config only |
 | Quota ledger / budget enforcement | **Not implemented** | Nothing. Quota appears as descriptive text in model descriptions and as `req_per_month` hints in scoring. There is no counter, no ledger, no cap | — |
 | Delegation orchestration | **Advisory** | Prompt-level instructions (`agents/auto.md`, `templates/orchestrator.md`). No check that a subtask actually went to the pinned agent | — |
-| Return to `auto` after a turn | **Enforced** (OpenCode only) | `examples/opencode/plugins/auto-model-reset/index.js`; CI syntax-checks the module | `scripts/check.sh` |
+| Return to `auto` after a turn | **Enforced** (OpenCode only) | `examples/opencode/plugins/auto-model-reset/index.js`, for sessions whose origin is `auto` (manual model choices are never reset); CI runs its behavioural tests | `scripts/check.sh` |
 
 ## What "advisory" means here
 

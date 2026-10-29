@@ -55,7 +55,7 @@ what you must wire into a harness.
 | Model selection per prompt | **External** — the OpenCode example relies on the `opencode-auto-model` plugin (referenced, not vendored or tested here) | `examples/opencode/` |
 | Quota ledger / budget enforcement | **Not implemented** — quota is descriptive guidance only, with no counter or cap | — |
 | Delegation orchestration (pinned subagents) | **Advisory** (OpenCode agent prompts; nothing verifies the hand-off) | `examples/opencode/agents/` |
-| Return to `auto` after a turn | **Implemented** (OpenCode plugin) | `examples/opencode/plugins/` |
+| Return to `auto` after a turn | **Implemented** (OpenCode plugin) — only for sessions that started on auto; manual model choices are left alone | `examples/opencode/plugins/` |
 | End-to-end evaluation (success, cost, latency, escalations) | **Not yet run** — harness only, no results | `eval/` |
 
 **Read [`docs/enforcement.md`](docs/enforcement.md) before relying on any of this.** It records,

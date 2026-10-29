@@ -1,0 +1,18 @@
+{
+  "plugins": [
+    {
+      "package": "opencode-auto-model@0.2.0",
+      "options": {
+        "fallback": "provider/workhorse",
+        "models": {
+          "provider/workhorse": "T2 routine workhorse. Use for most day-to-day engineering. Not for deep architecture or the hardest debugging.",
+          "provider/frontier": "T5 frontier. Reserve for the hardest work only. Not for routine tasks."
+        }
+      }
+    },
+    {
+      "package": "./plugins/auto-model-reset",
+      "options": { "delayMs": 0, "onlyRoot": true }
+    }
+  ]
+}

@@ -203,11 +203,34 @@ A session should not stay pinned to the last model the router picked. Add a smal
 plugin that switches the session back to `router/auto` when a turn finishes, so the next prompt
 re-routes through the hierarchy.
 
+**Origin matters.** Only sessions that *started on auto* are reset. Resetting a session you
+opened on a manually picked model would undo your choice — and because the router only acts while
+the session's model is on the `router` provider, it would also silently stop routing that
+session. The plugin therefore latches an origin per session:
+
+| Evidence | Origin |
+|---|---|
+| `session.created` with no model, or a `router/*` model | `auto` |
+| a switch to `router/*` (the plugin's reset, or you choosing auto) | `auto` |
+| a concrete model switch *during* a turn (the router's admission pick) | `auto` |
+| a concrete switch while idle, resolved at the next prompt | `auto` if it landed within `admissionWindowMs` (default 500 ms) of the prompt — the router's admission switch — otherwise `manual` |
+| a session first seen on a concrete model with no history | `manual` (do nothing) |
+
+Once manual, a session stays manual until you choose `router/auto` again. Origins are persisted
+through plugin storage, so a config reload or server restart does not resurrect the bug.
+
 - **Signal:** the server delivers `session.step.ended` to plugin subscribers, but **not**
   `session.idle` / `session.status` — those are ephemeral client events. Reset only when a step
   is terminal (`finish !== "tool-calls"`) so the model is never swapped mid-turn.
 - **Scope:** root sessions only (`session.parentID` empty), so pinned delegation subagents are
   left alone.
+- **Plugin order:** hooks run in plugin order. Listing `auto-model-reset` *before*
+  `opencode-auto-model` lets its prompt hook see the pre-switch model; the plugin also resolves a
+  switch that lands just before its hook, so the opposite order works too. The example lists the
+  reset plugin first.
+- **Caveat:** a concrete switch made *while a turn is active* is treated as the router's pick,
+  because the TUI can commit a model change at prompt time. For a manual override in an auto
+  session, pick the model between turns (or start a new session).
 - **Debounce:** `delayMs` after the turn ends; a new `prompt` cancels a pending reset. `0` means
   reset after every turn; a large value keeps an active conversation on one warm-cache model and
   only resets after real inactivity.
