@@ -210,7 +210,8 @@ session. The plugin therefore latches an origin per session:
 
 | Evidence | Origin |
 |---|---|
-| `session.created` with no model, or a `router/*` model | `auto` |
+| `session.created` with a `router/*` model | `auto` |
+| `session.created` with no model | resolved at the first prompt from the default model |
 | a switch to `router/*` (the plugin's reset, or you choosing auto) | `auto` |
 | a concrete model switch *during* a turn (the router's admission pick) | `auto` |
 | a concrete switch while idle, resolved at the next prompt | `auto` if it landed within `admissionWindowMs` (default 500 ms) of the prompt — the router's admission switch — otherwise `manual` |

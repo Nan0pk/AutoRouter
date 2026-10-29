@@ -229,6 +229,20 @@ test("router switch just before the prompt hook still counts as auto", async () 
   env.close()
 })
 
+test("no-model session on a concrete default is not reset", async () => {
+  const env = harness()
+  env.ctx.model.default = async () => ({ data: { providerID: "opencode-go", modelID: "deepseek" } })
+  const dispose = await plugin.setup(env.ctx)
+  env.dispose = dispose
+  await created(env, "s14")
+  await prompt(env, "s14") // no model yet; default is concrete, not auto
+  await stepEnded(env, "s14")
+  await tick(20)
+  assert.equal(env.switched.length, 0)
+  await env.dispose()
+  env.close()
+})
+
 test("unknown pre-existing session on a concrete model is left alone", async () => {
   const env = await setup()
   env.models.set("s5", MANUAL) // loaded before the plugin: no created/selected event

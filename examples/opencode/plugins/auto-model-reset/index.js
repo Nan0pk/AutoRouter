@@ -17,7 +17,9 @@
 // already hold the router's pick. The origin is therefore latched from the
 // best available evidence, in this order:
 //
-//   1. `session.created` with no model (or a `router/*` model) -> auto.
+//   1. `session.created` with a `router/*` model -> auto. With no model it says
+//      nothing yet: the default may be auto or concrete, and the router may not
+//      have registered its provider; the first prompt resolves it.
 //   2. A model switch to `router/*` (ours, or yours) -> auto.
 //   3. A switch to a concrete model while a turn is active -> the router -> auto.
 //   4. The TUI pins a model by calling switchModel() immediately *before*
@@ -108,14 +110,17 @@ export default {
     let orderFirst = false
     let orderLogged = false
 
-    // What does a brand-new session start on? Only an auto default is resettable.
-    let defaultIsAuto = true
-    try {
-      const current = await ctx.model.default()
-      const ref = current?.data ?? current
-      defaultIsAuto = !ref || isRouterRef(ref)
-    } catch {
-      /* no default readable: assume auto, the documented setup */
+    // What does a session with no model run on? Resolved at prompt time, not at
+    // setup: when this plugin is listed first, the router's provider has not
+    // been registered yet and the default lookup can come back in another shape.
+    const isDefaultAuto = async () => {
+      try {
+        const current = await ctx.model.default()
+        const ref = current?.data ?? current
+        return !ref || isRouterRef(ref)
+      } catch {
+        return true // documented setup is an auto default
+      }
     }
 
     // ---- persisted origin state -------------------------------------------
@@ -204,15 +209,30 @@ export default {
         /* treat as unknown below */
       }
 
-      if (!model || isRouterRef(model)) {
-        // Either the default/nothing was pinned while the router is still to
-        // run, or the session is explicitly on auto. We run before the router.
+      log(
+        "prompt",
+        sessionID,
+        "model=",
+        JSON.stringify(model ?? null),
+        "orderFirst=",
+        orderFirst,
+        "pendingAge=",
+        switchedAt === undefined ? "none" : now - switchedAt,
+      )
+
+      if (!model) {
+        // No model yet: we are ahead of the router, and the session will use
+        // whatever the default is.
+        orderFirst = true
+        remember(sessionID, (await isDefaultAuto()) ? "auto" : "manual")
+      } else if (isRouterRef(model)) {
+        // The session is explicitly on router/*. We run before the router.
         orderFirst = true
         if (!orderLogged) {
           orderLogged = true
           log("order", "reset plugin runs before the router: manual pins are classified exactly")
         }
-        if (origins.get(sessionID) !== "manual") remember(sessionID, "auto")
+        remember(sessionID, "auto")
       } else if (orderFirst) {
         // We run before the router; a concrete model here was pinned by the user
         // (the router only switches a session that is on router/*).
@@ -251,9 +271,12 @@ export default {
 
           if (event.type === "session.created") {
             const session = data.session ?? data
-            if (!origins.has(sessionID)) {
-              const model = session?.model
-              remember(sessionID, !model ? (defaultIsAuto ? "auto" : "manual") : isRouterRef(model) ? "auto" : "manual")
+            log("created", sessionID, "model=", JSON.stringify(session?.model ?? null))
+            // Creation with no model says nothing yet: the default may be auto
+            // or concrete, and the router may not have registered its provider.
+            // Leave the origin unknown and decide at the first prompt.
+            if (!origins.has(sessionID) && session?.model) {
+              remember(sessionID, isRouterRef(session.model) ? "auto" : "manual")
             }
             continue
           }
