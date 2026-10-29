@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Nan0pk/AutoRouter/schema/autorouter.schema.json",
+  "title": "AutoRouter config",
+  "description": "Harness-agnostic, quota-aware, capability-tiered auto-routing configuration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "models"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "default_model": { "$ref": "#/definitions/modelRef", "description": "Model used for trivial prompts / when routing is skipped." },
+    "fallback": { "$ref": "#/definitions/modelRef", "description": "Safe model used when a decision fails. Should be cheap AND capable (T2)." },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "main_floor": { "type": "integer", "description": "Score at or below which the prompt is 'trivial' and stays on default_model." },
+        "complex_threshold": { "type": "integer", "description": "Score at or above which the prompt is 'complex' and may delegate." }
+      }
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "tier", "description"],
+        "properties": {
+          "id": { "$ref": "#/definitions/modelRef" },
+          "tier": { "type": "string", "enum": ["T0", "T1", "T2", "T3", "T4", "T5"] },
+          "capability": { "type": "number", "minimum": 0, "maximum": 1 },
+          "quota": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "requests_per_month": { "type": "integer", "minimum": 0 },
+              "monthly_limit_usd": { "type": "number", "minimum": 0 }
+            }
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20,
+            "description": "Must include an explicit capability CEILING (e.g. 'Not for ...')."
+          }
+        }
+      }
+    },
+    "delegation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "orchestrator_prompt": { "type": "string", "description": "Path to (or inline) orchestrator system prompt." },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "model"],
+            "properties": {
+              "name": { "type": "string" },
+              "model": { "$ref": "#/definitions/modelRef" },
+              "tier": { "type": "string", "enum": ["T0", "T1", "T2", "T3", "T4", "T5"] },
+              "purpose": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "modelRef": {
+      "type": "string",
+      "pattern": "^[^/]+\\/[^#]+(#.+)?$",
+      "description": "provider/model with an optional #variant, e.g. openai/gpt-6.1-sol#high"
+    }
+  }
+}

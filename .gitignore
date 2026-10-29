@@ -1,0 +1,17 @@
+# secrets / local env
+.env
+.env.*
+*.token
+.gh_token
+
+# python
+__pycache__/
+*.pyc
+
+# generated artifacts from the pipeline
+scored.json
+my-router.json
+generic.json
+
+# os
+.DS_Store

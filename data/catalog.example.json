@@ -1,0 +1,564 @@
+[
+  {
+    "providerID": "openai",
+    "id": "gpt-5.5",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-5.5-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-5.6-luna",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-5.6-luna-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-5.6-sol",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-5.6-sol-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-5.6-terra",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-5.6-terra-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6-astra",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6-astra-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6-luna",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6-luna-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6-sol",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6-sol-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6.1-sol",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6.1-sol-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6.1-terra",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "openai",
+    "id": "gpt-6.1-terra-fast",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "beam-free",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "claude-haiku-5-5",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "deepseek-v4-pro",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "high",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "deepseek-v4.1-flash",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "high",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "gemini-4-argon",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "glm-5.2",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "high",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "glm-5.3",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "high",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "glm-5.3-flash",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "high",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "gpt-5.6-luna",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "gpt-6-luna",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "grok-4.7",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "hy3",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "high"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "hy4-preview",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "high"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "iceman-contributor-free",
+    "enabled": true,
+    "status": "active",
+    "variants": []
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "kimi-k2.7-code",
+    "enabled": true,
+    "status": "active",
+    "variants": []
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "kimi-k3",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "kimi-k3.1-pro",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "high",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "longcat-2.0",
+    "enabled": true,
+    "status": "active",
+    "variants": []
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "mimo-v2.5",
+    "enabled": true,
+    "status": "active",
+    "variants": []
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "mimo-v2.5-pro",
+    "enabled": true,
+    "status": "active",
+    "variants": []
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "mimo-v2.6-flash",
+    "enabled": true,
+    "status": "active",
+    "variants": []
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "mimo-v2.6-pro",
+    "enabled": true,
+    "status": "active",
+    "variants": []
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "minimax-m3",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "thinking"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "minimax-m3.1-flash",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "muse-spark-1.2-contributor",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "muse-spark-1.3-contributor",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "qwen3.7-plus",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "high",
+      "max"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "qwen3.8-flash",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "xhigh"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "qwen3.8-max",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "none",
+      "low",
+      "medium",
+      "xhigh"
+    ]
+  },
+  {
+    "providerID": "opencode-go",
+    "id": "step-5-preview",
+    "enabled": true,
+    "status": "active",
+    "variants": [
+      "low",
+      "medium",
+      "high"
+    ]
+  }
+]

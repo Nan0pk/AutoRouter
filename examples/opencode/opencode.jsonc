@@ -1,0 +1,33 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "snapshots": true,
+  "model": "router/auto",
+  "default_agent": "auto",
+  "policies": [
+    { "action": "provider.use", "resource": "*", "effect": "deny" },
+    { "action": "provider.use", "resource": "router", "effect": "allow" },
+    { "action": "provider.use", "resource": "opencode-go", "effect": "allow" },
+    { "action": "provider.use", "resource": "openai", "effect": "allow" }
+  ],
+  "plugins": [
+    {
+      "package": "opencode-auto-model@0.2.0",
+      "options": {
+        "fallback": "opencode-go/deepseek-v4.1-flash",
+        "models": {
+          "opencode-go/beam-free": "T0 throwaway. Free and unlimited allowance, but weak at agentic coding. Use only for mechanical work: formatting, renames, trivial text edits, quick lookups, or when all paid quota is exhausted. Never for real feature work, logic, or debugging.",
+          "opencode-go/mimo-v2.6-flash": "T1 simple/high-volume. Very cheap with a huge allowance (~150k req/mo). Use for simple low-stakes work: boilerplate, repetitive edits, straightforward single-file changes, summaries, formatting. Not for multi-file or logic-heavy tasks. Coding benchmarks may be reward-hacked.",
+          "opencode-go/deepseek-v4.1-flash": "T2 routine workhorse. Best value: near-frontier coding at the largest paid allowance (~173k req/mo, cheaper off-peak). Use for most routine engineering: ordinary features, normal bug fixes, single-module changes, standard refactors and explanations. The default for day-to-day coding. Escalate harder work to the strong/hard tiers.",
+          "opencode-go/muse-spark-1.3-contributor": "T2+ high-volume correctness. Very strong SWE-bench and DeepSWE at the highest quota (~226k req/mo) and lowest price. Use for high-volume well-scoped work: feature implementation, focused bug fixes, refactors, and code where correctness matters and you want maximum throughput. Weak on long multi-step agentic or terminal tasks.",
+          "opencode-go/glm-5.3-flash": "T2 routine-moderate. Strong and cheap (SWE-bench 92pct, solid agentic) with a large allowance (~31k req/mo). Use for routine-to-moderate coding and when you want more quality than DeepSeek Flash on tricky small changes. Not for deep architecture or the hardest debugging.",
+          "opencode-go/claude-haiku-5-5": "T3 strong. Excellent reasoning and agentic coding (best-in-set on FrontierCode 2.0) at a cheap price and good allowance (~19k req/mo). Use for hard-ish work: multi-step fixes, subtle logic, careful refactors, tricky debugging. Best quality-per-quota. Not the absolute frontier.",
+          "opencode-go/deepseek-v4-pro": "T4 hard-debugging. Top SWE-bench accuracy (96pct) but weaker on long agentic tasks, modest allowance (~5k req/mo). Use for hard, well-scoped debugging and correctness-critical fixes where depth matters. Not for long multi-step agentic or architectural work.",
+          "opencode-go/glm-5.3": "T4 hard-agentic. High capability (SWE-bench 95pct, strong agentic) but tight allowance (~1k req/mo). Reserve for hard multi-file work: architecture, complex refactors, subtle system-level bugs. Use sparingly to conserve quota.",
+          "opencode-go/gemini-4-argon": "T5 frontier. Top overall on Artificial Analysis and LMArena, best agentic. Tight allowance (~2k req/mo) and expensive. Reserve for the hardest work: system architecture, deep debugging, large multi-file refactors, high-stakes tradeoff decisions.",
+          "opencode-go/kimi-k3.1-pro": "T5 frontier-coding. Best agentic coding (top Terminal-Bench and DeepSWE) but tiny allowance (~735 req/mo) and slow. Reserve for the hardest long-horizon coding problems only. Not for routine work.",
+          "openai/gpt-6.1-sol": "External hard-work offload that uses your ChatGPT plan quota, not Go. Use for hard architecture, subtle debugging, and broad refactors when you want to conserve Go quota. Subject to ChatGPT plan limits."
+        }
+      }
+    }
+  ]
+}

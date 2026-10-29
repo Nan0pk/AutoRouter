@@ -1,0 +1,60 @@
+{
+  "$schema": "../../schema/autorouter.schema.json",
+  "version": 1,
+  "default_model": "provider/cheap-default",
+  "fallback": "provider/routine-workhorse",
+  "gate": { "enabled": true, "main_floor": -2, "complex_threshold": 5 },
+  "models": [
+    {
+      "id": "provider/free-floor",
+      "tier": "T0",
+      "capability": 0.2,
+      "quota": { "requests_per_month": -1 },
+      "description": "T0 throwaway. Free/unlimited but weak. Use only for mechanical or disposable work. Not for real feature work or debugging."
+    },
+    {
+      "id": "provider/cheap-fast",
+      "tier": "T1",
+      "capability": 0.4,
+      "quota": { "requests_per_month": 150000 },
+      "description": "T1 volume. Cheap, high allowance. Use for simple, repetitive, low-stakes work. Not for multi-file or logic-heavy tasks."
+    },
+    {
+      "id": "provider/routine-workhorse",
+      "tier": "T2",
+      "capability": 0.62,
+      "quota": { "requests_per_month": 170000 },
+      "description": "T2 routine workhorse and default. Near-frontier at a large allowance. Not for deep architecture or the hardest debugging."
+    },
+    {
+      "id": "provider/strong-value",
+      "tier": "T3",
+      "capability": 0.72,
+      "quota": { "requests_per_month": 19000 },
+      "description": "T3 strong. Great quality-per-quota for hard-ish work. Not the absolute frontier."
+    },
+    {
+      "id": "provider/hard-specialist",
+      "tier": "T4",
+      "capability": 0.82,
+      "quota": { "requests_per_month": 4000 },
+      "description": "T4 hard. For hard multi-file work and subtle bugs. Use sparingly."
+    },
+    {
+      "id": "provider/frontier",
+      "tier": "T5",
+      "capability": 0.95,
+      "quota": { "requests_per_month": 800 },
+      "description": "T5 frontier. Best overall but tiny allowance. Reserve for the hardest work only. Not for routine tasks."
+    }
+  ],
+  "delegation": {
+    "enabled": true,
+    "orchestrator_prompt": "../../templates/orchestrator.md",
+    "agents": [
+      { "name": "helper", "model": "provider/routine-workhorse", "tier": "T2", "purpose": "cheap high-volume offload" },
+      { "name": "specialist", "model": "provider/strong-value", "tier": "T3", "purpose": "hard-but-not-frontier work" },
+      { "name": "expert", "model": "provider/frontier", "tier": "T5", "purpose": "the hardest work" }
+    ]
+  }
+}
