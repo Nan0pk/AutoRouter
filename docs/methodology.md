@@ -62,7 +62,16 @@ row carries:
 | `benchmark_version` | the benchmark/leaderboard revision (e.g. `TB4.0`, `verified-2026-04`) |
 | `collected_on` | ISO date you read it |
 | `conditions` | tool use, trials, temperature, context, subset — whatever changes the number |
+| `provenance_status` | `verified`, `unverified`, or `estimated` |
+| `source_url` / `archive_url` | the page and an archived snapshot; **required** for `verified` |
+| `derivation` | how an `estimated` value was computed; **required** for `estimated` |
 | `notes` | caveats: reward-hacking, conflicts, preview status |
+
+**Filling in these fields is not verification.** A nonempty `source` proves that metadata was
+supplied, not that anyone read the number from that source or that the conditions match. Only
+`provenance_status: verified` — with a live URL *and* an archived snapshot — claims that, and the
+scorer rejects `verified` rows that lack either. The shipped example dataset is deliberately
+`unverified` throughout (`data/README.md`), so its ladder is illustrative, not evidence.
 
 `scripts/score_models.py` joins this table with quotas on **(provider, model)** — not on model
 name alone, which collides across providers. Two observations that disagree by more than 5%
@@ -72,9 +81,11 @@ are a **recorded conflict**: the independent board is retained, the disagreement
 ### Uncertainty is a first-class output
 
 Each model reports **evidence coverage** — the share of metric weight that actually has a
-provenance-tracked observation. If coverage drops below `--min-coverage` (default `0.5`), or no
-weighted metric has evidence, the model gets `"tier": null` and
-`"tier_status": "insufficient evidence"` instead of a tier. It is still listed, with its costs,
+provenance-tracked observation — and **verified coverage**, the share backed by a URL plus an
+archived snapshot. If coverage drops below `--min-coverage` (default `0.5`), or no weighted
+metric has evidence, the model gets `"tier": null` and
+`"tier_status": "insufficient evidence"`. With `--require-verified`, the threshold applies to
+*verified* coverage instead, and unverified data yields `"insufficient verified evidence"`. It is still listed, with its costs,
 so it can be routed to manually — but no automated ladder is built from a guess.
 
 ### Weighting rules

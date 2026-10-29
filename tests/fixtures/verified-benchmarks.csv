@@ -1,0 +1,3 @@
+provider,model,metric,value,source,source_kind,benchmark_version,collected_on,conditions,provenance_status,source_url,archive_url,derivation,notes
+test-provider,test-verified,deepswe,70,TEST independent board,independent,v1.0,2026-10-01,tools on; 3 trials,verified,https://example.test/deepswe,https://archive.test/deepswe-2026-10-01,,
+test-provider,test-verified,tb4,50,TEST terminal board,independent,v1.0,2026-10-01,tools on; 5 trials,verified,https://example.test/tb4,https://archive.test/tb4-2026-10-01,,

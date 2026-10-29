@@ -71,10 +71,15 @@ validating every config (including the OpenCode example against the catalog).
 ## Data formats
 
 - `benchmarks.example.csv` — long format:
-  `provider,model,metric,value,source,source_kind,benchmark_version,collected_on,conditions,notes`.
+  `provider,model,metric,value,source,source_kind,benchmark_version,collected_on,conditions,provenance_status,source_url,archive_url,derivation,notes`.
   Omit a row entirely when a model was not measured; do not write `n/a` placeholders.
   `source_kind` must be `independent`, `aggregate`, or `lab_card`.
-- `quota.example.csv` — `provider,model,monthly_limit_usd,req_per_month,input_cost,output_cost,cache_read_cost,cache_write_cost,notes`.
+- **Provenance is three-valued.** `verified` requires an `http(s)` `source_url` *and* an
+  `archive_url` (the scorer rejects it otherwise); `estimated` requires a `derivation`;
+  `unverified` is honest but is counted and reported as unverified. Never mark a figure
+  `verified` because the field looked right — open the source and the snapshot.
+- `quota.example.csv` — `provider,model,monthly_limit_usd,req_per_month,input_cost,output_cost,cache_read_cost,cache_write_cost,cache_price_source,notes`.
+  If cache prices are derived, say so in `cache_price_source`; the scorer flags them as estimates.
 - `scored.json` (generated) — validated against `schema/scored.schema.json`; a model below
   `--min-coverage` has `tier: null` and `tier_status: "insufficient evidence"`.
 - `data/catalog.example.json` — list of `{providerID, id, enabled, status, variants: [id, …]}`.

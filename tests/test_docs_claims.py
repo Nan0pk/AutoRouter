@@ -110,6 +110,28 @@ class GateClaims(unittest.TestCase):
         self.assertIn("t2", text)
 
 
+class DataClaims(unittest.TestCase):
+    """Provenance metadata is not verification; the docs must not imply it is."""
+
+    def test_readme_states_the_dataset_is_unverified(self):
+        text = read(ROOT / "README.md").lower()
+        self.assertIn("0/97", text)
+        self.assertNotIn("real oct-2026", text)
+
+    def test_data_readme_documents_the_three_valued_status(self):
+        text = read(ROOT / "data" / "README.md").lower()
+        for status in ("verified", "unverified", "estimated"):
+            self.assertIn(status, text)
+        self.assertIn("illustrative", text)
+        self.assertIn("archive_url", text)
+
+    def test_cache_prices_are_labelled_estimates(self):
+        header = read(ROOT / "data" / "quota.example.csv").splitlines()[0]
+        self.assertIn("cache_price_source", header)
+        body = read(ROOT / "data" / "quota.example.csv").lower()
+        self.assertIn("estimated", body)
+
+
 class DecisionCadence(unittest.TestCase):
     def test_policies_are_alternatives_not_a_rule_and_an_exception(self):
         text = read(ROOT / "docs" / "routing-model.md").lower()

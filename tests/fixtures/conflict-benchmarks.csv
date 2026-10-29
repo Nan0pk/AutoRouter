@@ -1,5 +1,5 @@
-provider,model,metric,value,source,source_kind,benchmark_version,collected_on,conditions,notes
-test-provider,test-conflict,deepswe,70,TEST independent board,independent,v1.0,2026-10-01,tools on; 3 trials,independent reading
-test-provider,test-conflict,deepswe,90,TEST vendor card,lab_card,v1.0,2026-10-02,self-reported,inflated vendor number
-test-provider,test-conflict,tb4,50,TEST terminal board,independent,v1.0,2026-10-01,tools on; 5 trials,
-test-provider,test-conflict,swe_bench,90,TEST swe board,independent,v1.0,2026-10-01,single-shot,
+provider,model,metric,value,source,source_kind,benchmark_version,collected_on,conditions,provenance_status,source_url,archive_url,derivation,notes
+test-provider,test-conflict,deepswe,70,TEST independent board,independent,v1.0,2026-10-01,tools on; 3 trials,unverified,,,,independent reading
+test-provider,test-conflict,deepswe,90,TEST vendor card,lab_card,v1.0,2026-10-02,self-reported,unverified,,,,inflated vendor number
+test-provider,test-conflict,tb4,50,TEST terminal board,independent,v1.0,2026-10-01,tools on; 5 trials,unverified,,,,
+test-provider,test-conflict,swe_bench,90,TEST swe board,independent,v1.0,2026-10-01,single-shot,unverified,,,,

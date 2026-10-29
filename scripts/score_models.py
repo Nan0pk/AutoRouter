@@ -7,7 +7,8 @@ Inputs
 (provider, model, metric) measurement, carrying its own provenance:
 
     provider,model,metric,value,source,source_kind,benchmark_version,
-    collected_on,conditions,notes
+    collected_on,conditions,provenance_status,source_url,archive_url,
+    derivation,notes
 
 `--quota` is one row per (provider, model) with economics:
 
@@ -19,9 +20,19 @@ Both files are joined on **(provider, model)**.
 Outputs
 -------
 For every model: a weighted capability score, the **evidence coverage** that
-backs it (fraction of metric weight actually observed), an explicit
-token-mix + cache cost estimate, and a tier. Sparse models get
+backs it (fraction of metric weight actually observed), how much of that
+evidence is **verified** against a source URL plus an archived snapshot, an
+explicit token-mix + cache cost estimate, and a tier. Sparse models get
 `"tier": null` / `"tier_status": "insufficient evidence"` instead of a tier.
+
+Provenance is three-valued, because "the field is filled in" is not "someone
+checked it":
+
+    verified    source_url AND archive_url are present (http/https)
+    unverified  metadata supplied, but not traceable to a page or snapshot
+    estimated   derived by this repo (e.g. cache prices); `derivation` required
+
+`--require-verified` withholds a tier unless enough *verified* evidence exists.
 
 Usage:
     python3 scripts/score_models.py \
@@ -57,6 +68,8 @@ SOURCE_KINDS = set(SOURCE_RANK)
 
 # Every observation must carry these, or the score is not reproducible.
 REQUIRED_PROVENANCE = ("source", "source_kind", "benchmark_version", "collected_on", "conditions")
+PROVENANCE_STATUS = {"verified", "unverified", "estimated"}
+URL_PREFIXES = ("http://", "https://")
 
 # Two observations for the same metric that differ by more than this are a
 # recorded source conflict, not something to average away silently.
@@ -126,6 +139,29 @@ def load_observations(path, warnings):
                 f"{missing}. Every observation needs source, source_kind, "
                 f"benchmark_version, collected_on and conditions."
             )
+        pstatus = (row.get("provenance_status") or "").strip()
+        if pstatus not in PROVENANCE_STATUS:
+            raise SystemExit(
+                f"ERROR: {path}:{i}: {key[0]}/{key[1]} {metric}: provenance_status must be "
+                f"one of {sorted(PROVENANCE_STATUS)}, got {pstatus!r}"
+            )
+        source_url = (row.get("source_url") or "").strip()
+        archive_url = (row.get("archive_url") or "").strip()
+        derivation = (row.get("derivation") or "").strip()
+        if pstatus == "verified":
+            bad = [name for name, value in (("source_url", source_url), ("archive_url", archive_url))
+                   if not value.startswith(URL_PREFIXES)]
+            if bad:
+                raise SystemExit(
+                    f"ERROR: {path}:{i}: {key[0]}/{key[1]} {metric}: provenance_status=verified "
+                    f"requires http(s) {bad}. A verified figure must be traceable to a page and "
+                    f"an archived snapshot; otherwise mark it unverified."
+                )
+        if pstatus == "estimated" and not derivation:
+            raise SystemExit(
+                f"ERROR: {path}:{i}: {key[0]}/{key[1]} {metric}: provenance_status=estimated "
+                f"requires a `derivation` explaining how the value was produced"
+            )
         kind = row["source_kind"].strip()
         if kind not in SOURCE_KINDS:
             raise SystemExit(
@@ -143,6 +179,10 @@ def load_observations(path, warnings):
             "benchmark_version": row["benchmark_version"].strip(),
             "collected_on": row["collected_on"].strip(),
             "conditions": row["conditions"].strip(),
+            "provenance_status": pstatus,
+            "source_url": source_url,
+            "archive_url": archive_url,
+            "derivation": derivation,
             "notes": (row.get("notes") or "").strip(),
         }
         out.setdefault(key, {}).setdefault(metric, []).append(obs)
@@ -232,6 +272,11 @@ def main():
     )
     ap.add_argument("--json", action="store_true", help="print JSON instead of a table")
     ap.add_argument(
+        "--require-verified",
+        action="store_true",
+        help="withhold a tier unless verified_coverage >= --min-coverage",
+    )
+    ap.add_argument(
         "--min-coverage",
         type=float,
         default=0.5,
@@ -303,6 +348,10 @@ def main():
                 "benchmark_version": chosen["benchmark_version"],
                 "collected_on": chosen["collected_on"],
                 "conditions": chosen["conditions"],
+                "provenance_status": chosen["provenance_status"],
+                "source_url": chosen["source_url"],
+                "archive_url": chosen["archive_url"],
+                "derivation": chosen["derivation"],
                 "notes": chosen["notes"],
             }
             if conflict:
@@ -310,6 +359,14 @@ def main():
 
         observed_weight = sum(weights[m] for m in present)
         coverage = round(observed_weight / total_weight, 3)
+        verified_weight = sum(
+            weights[m] for m in present
+            if evidence[m]["provenance_status"] == "verified"
+        )
+        verified_coverage = round(verified_weight / total_weight, 3)
+        status_counts = {s: 0 for s in sorted(PROVENANCE_STATUS)}
+        for m in present:
+            status_counts[evidence[m]["provenance_status"]] += 1
         # Normalise over observed weight so a sparse model is not silently
         # scored low for being unmeasured -- coverage carries that signal.
         cap = round(num / observed_weight, 3) if present else None
@@ -330,7 +387,9 @@ def main():
         value = round(cap / (0.001 + cost), 3) if (cap is not None and cost is not None) else None
         capacity = round(cap * math.log10(req + 10), 3) if (cap is not None and req is not None) else None
 
-        if cap is None or coverage < args.min_coverage:
+        if args.require_verified and verified_coverage < args.min_coverage:
+            tier, status = None, "insufficient verified evidence"
+        elif cap is None or coverage < args.min_coverage:
             tier, status = None, INSUFFICIENT
         else:
             tier, status = tier_of(cap), "ok"
@@ -353,12 +412,18 @@ def main():
                 "tier": tier,
                 "tier_status": status,
                 "tier_reason": (
-                    f"evidence coverage {coverage:.2f} < required {args.min_coverage:.2f}"
-                    if status == INSUFFICIENT and coverage < args.min_coverage
-                    else ("no normalisable capability evidence" if cap is None else "ok")
+                    f"verified coverage {verified_coverage:.2f} < required {args.min_coverage:.2f}"
+                    if status == "insufficient verified evidence"
+                    else (
+                        f"evidence coverage {coverage:.2f} < required {args.min_coverage:.2f}"
+                        if status == INSUFFICIENT and coverage < args.min_coverage
+                        else ("no normalisable capability evidence" if cap is None else "ok")
+                    )
                 ),
                 "capability": cap,
                 "coverage": coverage,
+                "verified_coverage": verified_coverage,
+                "provenance_counts": status_counts,
                 "metrics_used": present,
                 "metrics_missing": missing,
                 "evidence": evidence,
@@ -369,6 +434,7 @@ def main():
                 "output_cost": oc,
                 "cache_read_cost": cr,
                 "cache_write_cost": cw,
+                "cache_price_source": (q.get("cache_price_source") or "").strip() or None,
                 "est_cost_per_request": cost,
                 "value": value,
                 "capacity_score": capacity,
@@ -384,6 +450,18 @@ def main():
         )
     )
 
+    observations = [o for metrics in bench.values() for obs_list in metrics.values() for o in obs_list]
+    provenance_summary = {
+        "observations": len(observations),
+        **{s: sum(1 for o in observations if o["provenance_status"] == s)
+           for s in sorted(PROVENANCE_STATUS)},
+        "note": "verified requires source_url and archive_url; unverified means metadata was "
+                "supplied but not traced to a page or snapshot; estimated means derived here",
+    }
+    cache_estimated = any(
+        (r.get("cache_price_source") or "").startswith("estimated") for r in quota.values()
+    )
+
     cost_model = {
         "input_tokens": args.input_tokens,
         "output_tokens": args.output_tokens,
@@ -391,11 +469,14 @@ def main():
         "billing": "uncached input billed at cache_write_cost, cached input at cache_read_cost, "
                    "output at output_cost; cache prices fall back to input_cost when absent",
         "units": "USD per request",
+        "cache_prices_estimated": cache_estimated,
     }
     payload = {
         "schema": "schema/scored.schema.json",
         "weights": weights,
         "min_coverage": args.min_coverage,
+        "require_verified": args.require_verified,
+        "provenance_summary": provenance_summary,
         "cost_model": cost_model,
         "models": rows,
     }
@@ -410,11 +491,18 @@ def main():
         print("-" * len(hdr))
         for r in rows:
             print(
-                f"{r['model'][:34]:34} {(r['tier'] or r['tier_status']):21} "
-                f"{_fmt(r['capability'], '.3f', 5)} {r['coverage']:>5.2f} "
+                f"{r['model'][:34]:34} {(r['tier'] or r['tier_status']):29} "
+                f"{_fmt(r['capability'], '.3f', 5)} {r['coverage']:>5.2f} {r['verified_coverage']:>5.2f} "
                 f"{_fmt(r['est_cost_per_request'], '.4f', 8)} {_fmt(r['value'], '.1f', 8)} "
                 f"{_fmt(r['req_per_month'], 'd', 9)}  {r['notes'][:34]}"
             )
+        print(
+            f"provenance: {provenance_summary['verified']}/{provenance_summary['observations']} observations verified "
+            f"(unverified {provenance_summary['unverified']}, estimated {provenance_summary['estimated']})",
+            file=sys.stderr,
+        )
+        if cache_estimated:
+            print("cost model: cache prices are ESTIMATES (see cache_price_source)", file=sys.stderr)
         for w in warnings:
             print(f"WARN  {w}", file=sys.stderr)
 

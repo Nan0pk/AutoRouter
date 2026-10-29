@@ -65,8 +65,58 @@ assert sparse, "expected at least one sparse model in the example data"
 for name, r in sparse.items():
     assert r["tier"] is None, (name, r["tier"])
     assert r["tier_status"] == "insufficient evidence", (name, r["tier_status"])
+data = json.load(open("scored.json"))
+summary = data["provenance_summary"]
+assert summary["observations"] == 97, summary
+assert summary["verified"] == 0, "the example dataset is illustrative and must not claim verification"
+assert summary["unverified"] == 97, summary
+assert data["cost_model"]["cache_prices_estimated"] is True, "cache prices are derived estimates"
+for r in rows:
+    for metric, ev in r["evidence"].items():
+        assert ev["provenance_status"] in {"verified", "unverified", "estimated"}, (r["key"], metric)
+        if ev["provenance_status"] == "verified":
+            assert ev["source_url"].startswith("http") and ev["archive_url"].startswith("http"), ev
+    assert r["verified_coverage"] == 0.0, r["key"]
+
 print("   tiers:", sorted(tiers), "| sparse:", sorted(sparse))
+print(f"   provenance: {summary['verified']}/{summary['observations']} verified")
 PY
+
+echo "==> provenance: verified needs a source URL and an archived snapshot"
+python3 - <<'PY'
+import json, subprocess, sys
+def run(bench):
+    return subprocess.run(
+        [sys.executable, "scripts/score_models.py", "--benchmarks", bench,
+         "--quota", "tests/fixtures/verified-quota.csv", "--json"],
+        capture_output=True, text=True)
+
+ok = run("tests/fixtures/verified-benchmarks.csv")
+assert ok.returncode == 0, ok.stderr
+d = json.loads(ok.stdout)
+assert d["provenance_summary"]["verified"] == 2, d["provenance_summary"]
+assert d["models"][0]["verified_coverage"] > 0.5, d["models"][0]["verified_coverage"]
+
+missing_archive = run("tests/fixtures/verified-missing-archive-benchmarks.csv")
+assert missing_archive.returncode != 0, "verified without archive_url must be rejected"
+assert "archive_url" in missing_archive.stderr, missing_archive.stderr
+
+no_derivation = run("tests/fixtures/estimated-no-derivation-benchmarks.csv")
+assert no_derivation.returncode != 0, "estimated without derivation must be rejected"
+assert "derivation" in no_derivation.stderr, no_derivation.stderr
+print("   ok (URL + snapshot required; estimates require a derivation)")
+PY
+
+echo "==> provenance: --require-verified withholds tiers when nothing is verified"
+python3 scripts/score_models.py --benchmarks data/benchmarks.example.csv \
+  --quota data/quota.example.csv --require-verified --json 2>/dev/null \
+  | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert all(r['tier'] is None for r in d['models']), 'unverified data must not yield tiers'
+assert {r['tier_status'] for r in d['models']} == {'insufficient verified evidence'}
+print('   ok (0 tiers from unverified evidence)')
+"
 
 echo "==> cost model: explicit token mix + cache, not blended input+output"
 python3 - <<'PY'

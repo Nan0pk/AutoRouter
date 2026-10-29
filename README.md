@@ -48,7 +48,8 @@ what you must wire into a harness.
 | Quota-aware tiers + capability-ceiling descriptions | **Implemented** (config) | `examples/`, `schema/` |
 | Offline scoring → tiers → config builder | **Implemented** | `scripts/score_models.py`, `build_router.py` |
 | Config validation | **Implemented** — custom checks; `--schema` for real JSON Schema | `scripts/validate_router.py` |
-| Provenance, evidence coverage, "insufficient evidence" tiers | **Implemented** | `scripts/score_models.py`, `schema/scored.schema.json` |
+| Provenance, evidence coverage, "insufficient evidence" tiers | **Implemented** — three-valued provenance (`verified`/`unverified`/`estimated`); `verified` requires a source URL and an archived snapshot | `scripts/score_models.py`, `data/README.md` |
+| Verified-vs-unverified reporting | **Implemented** — `verified_coverage` per model, `0/97` for the illustrative dataset | `scripts/score_models.py` |
 | Explicit token-mix + cache cost model (no blended input+output) | **Implemented** | `scripts/score_models.py` |
 | Complexity gate (heuristic) | **Implemented and calibrated** — 162 labelled prompts, 0% under-routing / 16.5% over-routing on the test split (**in-sample, not held-out accuracy**); **advisory** — nothing calls it at runtime | `scripts/classify.py`, `tests/gate/` |
 | Model selection per prompt | **External** — the OpenCode example relies on the `opencode-auto-model` plugin (referenced, not vendored or tested here) | `examples/opencode/` |
@@ -98,8 +99,9 @@ AutoRouter/
 │   ├── gate/labeled_prompts.csv # 162 labelled prompts + risk families
 │   └── test_classify.py         # gate unit + calibration-budget tests
 ├── data/
-│   ├── benchmarks.example.csv  # long-format observations + provenance (Oct-2026 Go data)
-│   └── quota.example.csv       # quota/economics inputs, incl. cache prices
+│   ├── README.md               # data status: the example figures are UNVERIFIED
+│   ├── benchmarks.example.csv  # long-format observations + provenance status + URLs
+│   └── quota.example.csv       # quota/economics inputs; cache prices are estimates
 └── templates/
     ├── orchestrator.md         # self-aware delegation orchestrator prompt
     └── subagent.md             # pinned-model subagent template
@@ -116,9 +118,11 @@ The pipeline mirrors how this repo's OpenCode example was made:
 python3 scripts/classify.py "rename this variable"
 
 # 2. Score models from capability + quota data.
-#    Each score reports its evidence coverage; sparse models get
+#    Each score reports evidence coverage and how much of it is verified
+#    against a source URL + archived snapshot; sparse models get
 #    "insufficient evidence" instead of a tier. Cost is priced from an
 #    explicit token mix + cache model, not a blended input+output number.
+#    Add --require-verified to withhold tiers from unverified evidence.
 python3 scripts/score_models.py \
   --benchmarks data/benchmarks.example.csv \
   --quota data/quota.example.csv \
