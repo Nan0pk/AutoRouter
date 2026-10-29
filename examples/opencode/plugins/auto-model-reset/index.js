@@ -20,11 +20,17 @@
 //   1. `session.created` with no model (or a `router/*` model) -> auto.
 //   2. A model switch to `router/*` (ours, or yours) -> auto.
 //   3. A switch to a concrete model while a turn is active -> the router -> auto.
-//   4. A switch to a concrete model while no turn is active is *ambiguous*: it
-//      is either the router's admission switch (if it lands just before this
-//      plugin's prompt hook) or you picking a model between turns. It is
-//      remembered and resolved at the next prompt: within `admissionWindowMs`
-//      it was the router, otherwise it was you -> manual.
+//   4. The TUI pins a model by calling switchModel() immediately *before*
+//      session.prompt(), so a manual pick always lands just before the prompt
+//      hook too. When this plugin is listed before the router plugin, its hook
+//      runs before the router switches: a `router/*` model means "nothing was
+//      pinned, the router is about to route" (-> auto), and a concrete model
+//      means "you pinned it" (-> manual). That case is exact.
+//   5. When this plugin is listed *after* the router, a concrete model at the
+//      prompt hook is ambiguous: the router may have switched milliseconds
+//      earlier. There the timing window is the only signal (a router switch is
+//      ~0 ms old, a human pick is usually older). Listing this plugin first
+//      avoids the guess entirely; the example does.
 //
 // Once a session is manual it stays manual. State is persisted through
 // `ctx.storage`, so a config reload or server restart does not resurrect the
@@ -47,12 +53,12 @@
 //                       Raise it (e.g. 1800000) to only reset after long
 //                       inactivity and keep an active conversation warm.
 //   onlyRoot          - skip subagent child sessions (default true).
-//   admissionWindowMs - how long before a prompt a concrete switch still counts
-//                       as the router's admission switch (default 500). The
-//                       window only has to cover "this plugin's prompt hook
-//                       starts just after the router's switch", so keep it
-//                       small: it is also the window in which a manual pick
-//                       made immediately before Enter would be misread.
+//   admissionWindowMs - fallback only, used when this plugin is listed *after*
+//                       the router plugin: how fresh a concrete switch must be
+//                       to count as the router's admission switch (default
+//                       150). Ignored once the plugin has observed a prompt
+//                       where the session was still on `router/*`, which proves
+//                       it runs before the router.
 //   debug             - append diagnostics to the debug file (default false).
 //   debugFile         - debug log path (default: <tmp>/auto-model-reset.log).
 
@@ -74,7 +80,7 @@ export default {
     const delayMs = typeof opts.delayMs === "number" ? Math.max(0, opts.delayMs) : 0
     const onlyRoot = opts.onlyRoot !== false
     const admissionWindowMs =
-      typeof opts.admissionWindowMs === "number" ? Math.max(0, opts.admissionWindowMs) : 500
+      typeof opts.admissionWindowMs === "number" ? Math.max(0, opts.admissionWindowMs) : 150
     const debug = opts.debug === true
     const debugFile = typeof opts.debugFile === "string" ? opts.debugFile : join(tmpdir(), "auto-model-reset.log")
 
@@ -95,6 +101,12 @@ export default {
     const pendingSwitch = new Map()
     const timers = new Map()
     const controller = new AbortController()
+
+    // Set once this plugin has seen a prompt while the session was still on a
+    // router/* model: proof that its hook runs before the router's, so a
+    // concrete model at admission can only be a user pick.
+    let orderFirst = false
+    let orderLogged = false
 
     // What does a brand-new session start on? Only an auto default is resettable.
     let defaultIsAuto = true
@@ -184,29 +196,38 @@ export default {
 
       const now = Date.now()
       const switchedAt = pendingSwitch.get(sessionID)
+
+      let model
+      try {
+        model = (await ctx.session.get({ sessionID }))?.model
+      } catch {
+        /* treat as unknown below */
+      }
+
+      if (!model || isRouterRef(model)) {
+        // Either the default/nothing was pinned while the router is still to
+        // run, or the session is explicitly on auto. We run before the router.
+        orderFirst = true
+        if (!orderLogged) {
+          orderLogged = true
+          log("order", "reset plugin runs before the router: manual pins are classified exactly")
+        }
+        if (origins.get(sessionID) !== "manual") remember(sessionID, "auto")
+      } else if (orderFirst) {
+        // We run before the router; a concrete model here was pinned by the user
+        // (the router only switches a session that is on router/*).
+        remember(sessionID, "manual")
+      } else if (switchedAt !== undefined && now - switchedAt <= admissionWindowMs) {
+        // Listed after the router: a switch this fresh is its admission switch.
+        if (!orderLogged) {
+          orderLogged = true
+          log("order", "reset plugin runs after the router: using the admission window")
+        }
+        if (origins.get(sessionID) !== "manual") remember(sessionID, "auto")
+      } else {
+        remember(sessionID, "manual")
+      }
       pendingSwitch.delete(sessionID)
-
-      if (switchedAt !== undefined) {
-        // A concrete switch arrived while the session was idle. The router only
-        // switches during admission, so "just before this prompt" is the router
-        // and anything older is the user.
-        if (now - switchedAt <= admissionWindowMs) {
-          if (origins.get(sessionID) !== "manual") remember(sessionID, "auto")
-        } else if (origins.get(sessionID) === "auto") {
-          remember(sessionID, "manual")
-        }
-      }
-
-      if (!origins.has(sessionID)) {
-        let model
-        try {
-          model = (await ctx.session.get({ sessionID }))?.model
-        } catch {
-          /* treat as unknown below */
-        }
-        if (model) remember(sessionID, isRouterRef(model) ? "auto" : "manual")
-        else remember(sessionID, defaultIsAuto ? "auto" : "manual")
-      }
     })
 
     log("setup delayMs=", delayMs, "onlyRoot=", onlyRoot, "window=", admissionWindowMs)

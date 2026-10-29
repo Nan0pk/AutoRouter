@@ -224,10 +224,14 @@ through plugin storage, so a config reload or server restart does not resurrect 
   is terminal (`finish !== "tool-calls"`) so the model is never swapped mid-turn.
 - **Scope:** root sessions only (`session.parentID` empty), so pinned delegation subagents are
   left alone.
-- **Plugin order:** hooks run in plugin order. Listing `auto-model-reset` *before*
-  `opencode-auto-model` lets its prompt hook see the pre-switch model; the plugin also resolves a
-  switch that lands just before its hook, so the opposite order works too. The example lists the
-  reset plugin first.
+- **Plugin order is the discriminator.** Hooks run in plugin order, and the TUI pins a model by
+  calling `switchModel()` immediately *before* `session.prompt()`, so a manual pick is always
+  fresh at the prompt hook too. Listing `auto-model-reset` **before** `opencode-auto-model` makes
+  the check exact: the reset plugin sees the model *before* the router switches, so `router/*`
+  means "nothing pinned" and a concrete model means "you pinned it". Listing it after the router
+  falls back to a timing window (a router switch is ~0 ms old, a human pick usually is not) and
+  can misread a pick followed instantly by Enter. The example lists the reset plugin first, and
+  the plugin logs which mode it is in when `debug` is on.
 - **Caveat:** a concrete switch made *while a turn is active* is treated as the router's pick,
   because the TUI can commit a model change at prompt time. For a manual override in an auto
   session, pick the model between turns (or start a new session).

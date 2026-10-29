@@ -190,6 +190,29 @@ test("manual session: mid-conversation switch is respected", async () => {
   env.close()
 })
 
+test("listed before the router: a fast manual pin is still manual", async () => {
+  // The TUI calls switchModel() immediately before session.prompt(), so the
+  // pick is always "fresh" at the prompt hook. Once the plugin has seen a
+  // prompt while the session was still on router/auto, it knows it runs before
+  // the router and treats a concrete model as the user's pick.
+  const env = await setup() // default admission window: 150ms
+  await created(env, "s12")
+  env.models.set("s12", AUTO)
+  await prompt(env, "s12") // proves the plugin runs before the router
+  await selected(env, "s12", MANUAL) // the router's pick
+  await stepEnded(env, "s12")
+  await tick(20)
+  assert.equal(env.switched.length, 1)
+
+  await selected(env, "s12", MANUAL2) // user pins...
+  await prompt(env, "s12") // ...and hits Enter immediately
+  await stepEnded(env, "s12")
+  await tick(20)
+  assert.equal(env.switched.length, 1, "a fast manual pin must not be read as routing")
+  await env.dispose()
+  env.close()
+})
+
 test("router switch just before the prompt hook still counts as auto", async () => {
   // The router plugin may be listed first, so its admission switch can land
   // before this plugin's prompt hook runs.
