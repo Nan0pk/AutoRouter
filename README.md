@@ -34,6 +34,28 @@ The point is not a specific config — it's a **reproducible process** you can r
 
 ---
 
+## Implementation status
+
+This is a **methodology + toolkit**, not a turnkey runtime router. Here is what runs today versus
+what you must wire into a harness.
+
+| Capability | Status | Where |
+|---|---|---|
+| Quota-aware tiers + capability-ceiling descriptions | **Implemented** (config) | `examples/`, `schema/` |
+| Offline scoring → tiers → config builder | **Implemented** | `scripts/score_models.py`, `build_router.py` |
+| Config validation | **Implemented** — custom checks; `--schema` for real JSON Schema | `scripts/validate_router.py` |
+| Complexity gate (heuristic) | **Implemented, but not wired into the OpenCode route** | `scripts/classify.py` |
+| Live quota ledger / budget enforcement | **Requires harness integration** | — |
+| A runtime router enforcing every policy generically | **Requires harness integration** — the OpenCode example relies on the `opencode-auto-model` plugin | `examples/opencode/` |
+| Delegation orchestration (pinned subagents) | **Implemented** (OpenCode agents) | `examples/opencode/agents/` |
+| Return to `auto` after a turn | **Implemented** (OpenCode plugin) | `examples/opencode/plugins/` |
+| Calibrated gate, benchmark provenance, end-to-end evaluation | **Future work** | — |
+
+The OpenCode example is a working *integration*, but the complexity gate and quota economics are
+**advisory descriptions, not enforced runtime policy**, unless a harness implements them.
+
+---
+
 ## Repository layout
 
 ```

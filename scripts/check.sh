@@ -43,6 +43,13 @@ python3 scripts/validate_router.py --config examples/opencode/opencode.jsonc --c
 python3 scripts/validate_router.py --config my-router.json
 python3 scripts/validate_router.py --config generic.json
 
+echo "==> validator regression: string-form variants"
+out=$(python3 scripts/validate_router.py --config tests/fixtures/variant-string.json --catalog data/catalog.example.json 2>&1 || true)
+if printf '%s' "$out" | grep -q "Traceback"; then
+  echo "ERROR: validator crashed on string-form variants"; exit 1
+fi
+echo "   ok (no crash)"
+
 if command -v node >/dev/null 2>&1; then
   echo "==> node syntax check (example plugins)"
   node --input-type=module -e "await import('./examples/opencode/plugins/auto-model-reset/index.js')" >/dev/null

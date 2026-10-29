@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Validate an AutoRouter config and (optionally) resolve model IDs.
+"""Validate an AutoRouter config.
+
+By default this runs **custom structural checks** (model-ref format, tiers,
+ceiling hints, fallback membership) and, with --catalog, resolves model IDs and
+variants. It is not JSON Schema validation. Pass --schema PATH to additionally
+validate against a JSON Schema (requires the optional `jsonschema` package).
 
 Usage:
     python3 scripts/validate_router.py --config examples/generic/router.config.json
-    python3 scripts/validate_router.py --config my-router.json --catalog catalog.json
-
-`catalog.json` may be either:
-  * a list of {"providerID": ..., "id": ..., "variants": [{"id": ...}], "enabled": bool}
-  * any object with a "models"/"data" list in that shape.
+    python3 scripts/validate_router.py --config my-router.json --catalog data/catalog.example.json
+    python3 scripts/validate_router.py --config my-router.json --schema schema/autorouter.schema.json
 """
 import argparse
 import json
@@ -71,20 +73,38 @@ def split_ref(ref):
     return prov, mid, variant or None
 
 
+def catalog_variants(entry):
+    """Variants may be plain strings or {id: ...} objects; normalise to ids."""
+    return [v.get("id") if isinstance(v, dict) else v for v in (entry.get("variants") or [])]
+
+
 def main():
     ap = argparse.ArgumentParser(description="Validate an AutoRouter config.")
     ap.add_argument("--config", required=True)
     ap.add_argument("--catalog")
+    ap.add_argument("--schema", help="also validate against this JSON Schema (requires jsonschema)")
     args = ap.parse_args()
 
     errors, warnings = [], []
     try:
-        cfg = load(args.config)
+        original = load(args.config)
     except Exception as e:  # noqa: BLE001
         print(f"ERROR: cannot parse {args.config}: {e}")
         return 1
 
+    if args.schema:
+        try:
+            import jsonschema
+        except ImportError:
+            errors.append("--schema requires the 'jsonschema' package (pip install jsonschema)")
+        else:
+            try:
+                jsonschema.validate(original, load(args.schema))
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"schema validation failed: {str(e).splitlines()[0]}")
+
     # Accept both the generic shape and the orchestration plugin shape.
+    cfg = original
     models = cfg.get("models")
     if models is None and "plugins" in cfg:
         opts = cfg["plugins"][0].get("options", {})
@@ -133,10 +153,8 @@ def main():
             else:
                 if entry.get("enabled") is False:
                     warnings.append(f"{mid}: catalog model is disabled")
-                if variant:
-                    variants = [v.get("id") for v in (entry.get("variants") or [])]
-                    if variant not in variants:
-                        errors.append(f"{mid}: variant #{variant} not in {variants}")
+                if variant and variant not in catalog_variants(entry):
+                    errors.append(f"{mid}: variant #{variant} not in {catalog_variants(entry)}")
 
     fb = cfg.get("fallback")
     if fb is None:
@@ -144,8 +162,9 @@ def main():
     elif fb not in seen:
         errors.append(f"fallback {fb!r} is not among the configured models")
 
+    mode = "yes" if args.schema else "no (custom checks)"
     print(f"Config: {args.config}")
-    print(f"Models: {len(seen)}  |  T2 candidates: {len(t2)}")
+    print(f"Models: {len(seen)}  |  T2 candidates: {len(t2)}  |  schema: {mode}")
     for w in warnings:
         print(f"  WARN  {w}")
     for e in errors:

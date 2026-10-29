@@ -21,7 +21,7 @@ import sys
 
 # phrase -> weight added to the complexity score
 COMPLEX = {
-    "architecture": 3, "architect": 3, "redesign": 3, "system design": 3,
+    "architect": 3, "redesign": 3, "system design": 3,
     "migrate": 2, "migration": 2, "refactor": 2, "multi-file": 2, "across files": 2,
     "distributed": 2, "race condition": 3, "deadlock": 3, "concurrency": 2,
     "thread": 1, "async": 1, "debug": 2, "root cause": 2, "why does": 2,

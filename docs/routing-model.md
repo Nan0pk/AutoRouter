@@ -121,6 +121,10 @@ re-routes through the hierarchy.
 
 See `examples/opencode/plugins/auto-model-reset/index.js`.
 
+**Default policy in the example:** *turn-adaptive* (`delayMs: 0`) — the next prompt re-routes
+after every turn. Choose *session-sticky* by raising `delayMs` (e.g. `1800000`) or disabling the
+plugin. Pick one as your documented default and measure both before claiming a quota win.
+
 ## 5. Worked decision matrix (OpenCode Go, Oct 2026)
 
 | Prompt | Gate | Route | Delegation |

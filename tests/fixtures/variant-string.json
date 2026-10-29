@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "default_model": "openai/gpt-5.5#high",
+  "fallback": "openai/gpt-5.5#high",
+  "models": [
+    {
+      "id": "openai/gpt-5.5#high",
+      "tier": "T3",
+      "description": "Regression fixture: a model ref with a pinned variant, resolved against a catalog that stores variants as plain strings. Not for routine work."
+    }
+  ]
+}
