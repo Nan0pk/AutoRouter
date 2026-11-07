@@ -1,0 +1,3271 @@
+{
+  "generated_at": "2026-11-07T13:58:52+00:00",
+  "policy": {
+    "name": "gate-based routing policy",
+    "implementation": "scripts/classify.py + tier map from pins.json",
+    "exercises_opencode_plugin": false,
+    "exercises_delegation": false,
+    "note": "Results describe the gate-based policy only. They say nothing about the OpenCode auto-model plugin, its decider, or the delegation setup in examples/opencode/."
+  },
+  "synthetic": false,
+  "valid_evidence": false,
+  "validity": {
+    "valid": false,
+    "reasons": [
+      "1 task run(s) failed in the adapter and were excluded from scoring"
+    ]
+  },
+  "warning": "INVALID RUN: the adapter failed; results are excluded and this report is not evidence. Fix the adapter and re-run.",
+  "sandbox": {
+    "mechanism": "bwrap",
+    "applies_to": "behavioural tests only (they execute model-written code)",
+    "behavioral_tests_run": 51,
+    "behavioral_tests_skipped": 0
+  },
+  "pins": {
+    "task_set_sha256": "ecc5d54d7fe3f2b79ed52558dfb3550a9c7a268e694642ca62dba5802527f606",
+    "pinned_on": "2026-10-29",
+    "models": {
+      "opencode-go/deepseek-v4.1-flash": {
+        "role": "workhorse",
+        "version": "v4.1",
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "cache_read_cost": 0.015,
+        "cache_write_cost": 0.1875,
+        "req_per_month": 173330,
+        "monthly_limit_usd": 80
+      },
+      "opencode-go/mimo-v2.6-flash": {
+        "role": "workhorse",
+        "version": "v2.6",
+        "input_cost": 0.14,
+        "output_cost": 0.28,
+        "cache_read_cost": 0.014,
+        "cache_write_cost": 0.175,
+        "req_per_month": 150400,
+        "monthly_limit_usd": 60
+      },
+      "opencode-go/claude-haiku-5-5": {
+        "role": "specialist",
+        "version": "5.5",
+        "input_cost": 0.1,
+        "output_cost": 0.5,
+        "cache_read_cost": 0.01,
+        "cache_write_cost": 0.125,
+        "req_per_month": 19230,
+        "monthly_limit_usd": 15
+      },
+      "opencode-go/gemini-4-argon": {
+        "role": "strong",
+        "version": "4",
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "cache_read_cost": 0.2,
+        "cache_write_cost": 2.5,
+        "req_per_month": 2120,
+        "monthly_limit_usd": 30
+      }
+    },
+    "tiers": {
+      "T1": {
+        "role": "workhorse",
+        "model": "opencode-go/mimo-v2.6-flash"
+      },
+      "T2": {
+        "role": "workhorse",
+        "model": "opencode-go/deepseek-v4.1-flash"
+      },
+      "T3": {
+        "role": "specialist",
+        "model": "opencode-go/claude-haiku-5-5"
+      },
+      "T5": {
+        "role": "strong",
+        "model": "opencode-go/gemini-4-argon"
+      }
+    },
+    "settings": {
+      "temperature": 0,
+      "max_tokens": 2048,
+      "timeout_s": 900,
+      "retry_budget": 1,
+      "tool_policy": "advisory to the adapter: repo-local files, no network. The harness cannot enforce it for the adapter (the adapter needs network to call the model); it enforces isolation for behavioural tests.",
+      "sandbox": "fresh copy of eval/fixtures/<task> per attempt",
+      "verification": "declarative static checks plus sandboxed behavioural tests; model output is never executed outside the sandbox",
+      "behavior_timeout_s": 60
+    },
+    "cost_model": {
+      "input_tokens": 20000,
+      "output_tokens": 2000,
+      "cache_hit_rate": 0.5
+    }
+  },
+  "arms": {
+    "fixed_workhorse": {
+      "arm": "fixed_workhorse",
+      "tasks": 13,
+      "tasks_scored": 13,
+      "infrastructure_errors": 0,
+      "behavioral_verified": 13,
+      "behavioral_skipped": 0,
+      "successes": 8,
+      "success_rate": 0.6154,
+      "success_rate_of_all_tasks": 0.6154,
+      "partial_check_rate": 0.8485,
+      "total_cost_usd": 0.025324,
+      "cost_per_success_usd": 0.003165,
+      "mean_latency_ms": 76261,
+      "p95_latency_ms": 200914,
+      "retries": 12,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 12,
+      "routing_overhead_ms_total": 0.0,
+      "routing_overhead_ms_mean": 0.0,
+      "quota": {
+        "opencode-go/deepseek-v4.1-flash": {
+          "requests": 13,
+          "req_per_month": 173330,
+          "pct_of_monthly": 0.0075
+        }
+      },
+      "max_quota_pct": 0.0075,
+      "failures": [
+        {
+          "task": "bug-null",
+          "category": "bugfix",
+          "failures": [
+            "behavior:missing_user_does_not_raise: AssertionError: Unknown"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": null
+        },
+        {
+          "task": "debug-mutation",
+          "category": "debugging",
+          "failures": [
+            "aggregate.py: regex 'for key in list\\\\(totals\\\\)' failed"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": null
+        },
+        {
+          "task": "sec-path",
+          "category": "security",
+          "failures": [
+            "files.py: not_contains 'os.path.join(base, name)' failed"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": null
+        },
+        {
+          "task": "broad-validate",
+          "category": "broad",
+          "failures": [
+            "a.py: contains 'isinstance(cfg, dict)' failed",
+            "b.py: contains 'isinstance(cfg, dict)' failed",
+            "c.py: contains 'isinstance(cfg, dict)' failed"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": null
+        },
+        {
+          "task": "data-migrate",
+          "category": "data-safety",
+          "failures": [
+            "migrate.py: contains 'BEGIN' failed",
+            "migrate.py: contains 'ROLLBACK' failed",
+            "behavior:happy_path_is_transactional: AssertionError: ['DROP TABLE IF EXISTS users__pre_drop_legacy_flag', 'CREATE TABLE users__pre_drop_legacy_flag AS SELECT * FROM users', 'ALTER TABLE users DROP COLUMN legacy_flag', 'COMMIT']",
+            "behavior:failure_rolls_back_and_propagates: AttributeError: 'Conn' object has no attribute 'rollback'"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": null
+        }
+      ],
+      "adapter_errors": []
+    },
+    "fixed_workhorse_retry": {
+      "arm": "fixed_workhorse_retry",
+      "tasks": 13,
+      "tasks_scored": 13,
+      "infrastructure_errors": 0,
+      "behavioral_verified": 13,
+      "behavioral_skipped": 0,
+      "successes": 12,
+      "success_rate": 0.9231,
+      "success_rate_of_all_tasks": 0.9231,
+      "partial_check_rate": 0.9091,
+      "total_cost_usd": 0.039581,
+      "cost_per_success_usd": 0.003298,
+      "mean_latency_ms": 82564,
+      "p95_latency_ms": 166818,
+      "retries": 4,
+      "escalations": 0,
+      "harness_retries": 3,
+      "harness_escalations": 0,
+      "reported_retries": 1,
+      "routing_overhead_ms_total": 0.0,
+      "routing_overhead_ms_mean": 0.0,
+      "quota": {
+        "opencode-go/deepseek-v4.1-flash": {
+          "requests": 16,
+          "req_per_month": 173330,
+          "pct_of_monthly": 0.0092
+        }
+      },
+      "max_quota_pct": 0.0092,
+      "failures": [
+        {
+          "task": "broad-validate",
+          "category": "broad",
+          "failures": [
+            "a.py: contains 'isinstance(cfg, dict)' failed",
+            "a.py: contains 'raise ValueError' failed",
+            "b.py: contains 'isinstance(cfg, dict)' failed",
+            "b.py: contains 'raise ValueError' failed",
+            "c.py: contains 'isinstance(cfg, dict)' failed",
+            "c.py: contains 'raise ValueError' failed"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": null
+        }
+      ],
+      "adapter_errors": []
+    },
+    "fixed_strong": {
+      "arm": "fixed_strong",
+      "tasks": 13,
+      "tasks_scored": 13,
+      "infrastructure_errors": 0,
+      "behavioral_verified": 13,
+      "behavioral_skipped": 0,
+      "successes": 10,
+      "success_rate": 0.7692,
+      "success_rate_of_all_tasks": 0.7692,
+      "partial_check_rate": 0.8485,
+      "total_cost_usd": 0.426319,
+      "cost_per_success_usd": 0.042632,
+      "mean_latency_ms": 33517,
+      "p95_latency_ms": 61830,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "routing_overhead_ms_total": 0.0,
+      "routing_overhead_ms_mean": 0.0,
+      "quota": {
+        "opencode-go/gemini-4-argon": {
+          "requests": 13,
+          "req_per_month": 2120,
+          "pct_of_monthly": 0.6132
+        }
+      },
+      "max_quota_pct": 0.6132,
+      "failures": [
+        {
+          "task": "mech-rename",
+          "category": "mechanical",
+          "failures": [
+            "app.py: contains 'def get_user(user)' failed",
+            "app.py: not_contains 'usr' failed",
+            "behavior:renamed_api_works: AttributeError: module 'app' has no attribute 'get_user'"
+          ],
+          "model": "opencode-go/gemini-4-argon",
+          "gate": null
+        },
+        {
+          "task": "broad-validate",
+          "category": "broad",
+          "failures": [
+            "a.py: contains 'isinstance(cfg, dict)' failed",
+            "b.py: contains 'isinstance(cfg, dict)' failed",
+            "c.py: contains 'isinstance(cfg, dict)' failed"
+          ],
+          "model": "opencode-go/gemini-4-argon",
+          "gate": null
+        },
+        {
+          "task": "data-migrate",
+          "category": "data-safety",
+          "failures": [
+            "migrate.py: contains 'BEGIN' failed",
+            "migrate.py: contains 'ROLLBACK' failed",
+            "behavior:happy_path_is_transactional: AssertionError: ['ALTER TABLE users RENAME COLUMN legacy_flag TO legacy_flag_deprecated', 'COMMIT']",
+            "behavior:failure_rolls_back_and_propagates: AssertionError: the failure was swallowed"
+          ],
+          "model": "opencode-go/gemini-4-argon",
+          "gate": null
+        }
+      ],
+      "adapter_errors": []
+    },
+    "autorouter": {
+      "arm": "autorouter",
+      "tasks": 13,
+      "tasks_scored": 12,
+      "infrastructure_errors": 1,
+      "behavioral_verified": 12,
+      "behavioral_skipped": 0,
+      "successes": 8,
+      "success_rate": 0.6667,
+      "success_rate_of_all_tasks": 0.6154,
+      "partial_check_rate": 0.7742,
+      "total_cost_usd": 0.115311,
+      "cost_per_success_usd": 0.014414,
+      "mean_latency_ms": 44762,
+      "p95_latency_ms": 61467,
+      "retries": 2,
+      "escalations": 2,
+      "harness_retries": 2,
+      "harness_escalations": 2,
+      "reported_retries": 0,
+      "routing_overhead_ms_total": 428.98,
+      "routing_overhead_ms_mean": 35.75,
+      "quota": {
+        "opencode-go/deepseek-v4.1-flash": {
+          "requests": 2,
+          "req_per_month": 173330,
+          "pct_of_monthly": 0.0012
+        },
+        "opencode-go/mimo-v2.6-flash": {
+          "requests": 6,
+          "req_per_month": 150400,
+          "pct_of_monthly": 0.004
+        },
+        "opencode-go/claude-haiku-5-5": {
+          "requests": 4,
+          "req_per_month": 19230,
+          "pct_of_monthly": 0.0208
+        },
+        "opencode-go/gemini-4-argon": {
+          "requests": 2,
+          "req_per_month": 2120,
+          "pct_of_monthly": 0.0943
+        }
+      },
+      "max_quota_pct": 0.0943,
+      "failures": [
+        {
+          "task": "mech-rename",
+          "category": "mechanical",
+          "failures": [
+            "app.py: contains 'def get_user(user)' failed",
+            "app.py: not_contains 'usr' failed",
+            "behavior:renamed_api_works: AttributeError: module 'app' has no attribute 'get_user'"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": {
+            "class": "trivial",
+            "tier": "T2",
+            "delegate": false
+          }
+        },
+        {
+          "task": "bug-null",
+          "category": "bugfix",
+          "failures": [
+            "behavior:missing_user_does_not_raise: AssertionError: Unknown user"
+          ],
+          "model": "opencode-go/mimo-v2.6-flash",
+          "gate": {
+            "class": "standard",
+            "tier": "T1",
+            "delegate": false
+          }
+        },
+        {
+          "task": "broad-validate",
+          "category": "broad",
+          "failures": [
+            "a.py: contains 'isinstance(cfg, dict)' failed",
+            "a.py: contains 'raise ValueError' failed",
+            "b.py: contains 'isinstance(cfg, dict)' failed",
+            "b.py: contains 'raise ValueError' failed",
+            "c.py: contains 'isinstance(cfg, dict)' failed",
+            "c.py: contains 'raise ValueError' failed"
+          ],
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "gate": {
+            "class": "complex",
+            "tier": "T2",
+            "delegate": true
+          }
+        },
+        {
+          "task": "data-migrate",
+          "category": "data-safety",
+          "failures": [
+            "migrate.py: contains 'BEGIN' failed",
+            "migrate.py: contains 'ROLLBACK' failed",
+            "behavior:happy_path_is_transactional: AssertionError: ['ALTER TABLE users RENAME COLUMN legacy_flag TO legacy_flag_archived', 'COMMIT']",
+            "behavior:failure_rolls_back_and_propagates: AssertionError: the failure was swallowed"
+          ],
+          "model": "opencode-go/claude-haiku-5-5",
+          "gate": {
+            "class": "complex",
+            "tier": "T3",
+            "delegate": true
+          }
+        }
+      ],
+      "adapter_errors": [
+        {
+          "task": "mech-import",
+          "error": "adapter timed out after 900s"
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "fixed_workhorse_retry_vs_fixed_workhorse": {
+      "success_delta_pp": 30.77,
+      "cost_delta_pct": 56.3,
+      "cost_per_success_delta_pct": 4.2
+    },
+    "fixed_strong_vs_fixed_workhorse": {
+      "success_delta_pp": 15.38,
+      "cost_delta_pct": 1583.46,
+      "cost_per_success_delta_pct": 1246.98
+    },
+    "autorouter_vs_fixed_workhorse": {
+      "success_delta_pp": 5.13,
+      "cost_delta_pct": 355.34,
+      "cost_per_success_delta_pct": 355.42
+    }
+  },
+  "records": [
+    {
+      "task": "mech-rename",
+      "category": "mechanical",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10419,
+          "tokens_out": 279,
+          "latency_ms": 128969,
+          "reported_retries": 1,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10419,
+      "tokens_out": 279,
+      "cost_usd": 0.001222,
+      "latency_ms": 128969,
+      "routing_ms": 0.0,
+      "retries": 1,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 1,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-port",
+      "category": "mechanical",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10632,
+          "tokens_out": 219,
+          "latency_ms": 179552,
+          "reported_retries": 4,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10632,
+      "tokens_out": 219,
+      "cost_usd": 0.001208,
+      "latency_ms": 179552,
+      "routing_ms": 0.0,
+      "retries": 4,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 4,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-import",
+      "category": "mechanical",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10058,
+          "tokens_out": 182,
+          "latency_ms": 10579,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10058,
+      "tokens_out": 182,
+      "cost_usd": 0.001128,
+      "latency_ms": 10579,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-offbyone",
+      "category": "bugfix",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10860,
+          "tokens_out": 360,
+          "latency_ms": 206178,
+          "reported_retries": 7,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10860,
+      "tokens_out": 360,
+      "cost_usd": 0.001316,
+      "latency_ms": 206178,
+      "routing_ms": 0.0,
+      "retries": 7,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 7,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-null",
+      "category": "bugfix",
+      "arm": "fixed_workhorse",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 3,
+      "checks_total": 4,
+      "failures": [
+        "behavior:missing_user_does_not_raise: AssertionError: Unknown"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10259,
+          "tokens_out": 1425,
+          "latency_ms": 27022,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10259,
+      "tokens_out": 1425,
+      "cost_usd": 0.001894,
+      "latency_ms": 27022,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-test",
+      "category": "bugfix",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 50126,
+          "tokens_out": 283,
+          "latency_ms": 9925,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 50126,
+      "tokens_out": 283,
+      "cost_usd": 0.005245,
+      "latency_ms": 9925,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "debug-mutation",
+      "category": "debugging",
+      "arm": "fixed_workhorse",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 3,
+      "checks_total": 4,
+      "failures": [
+        "aggregate.py: regex 'for key in list\\\\(totals\\\\)' failed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10672,
+          "tokens_out": 455,
+          "latency_ms": 11201,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10672,
+      "tokens_out": 455,
+      "cost_usd": 0.001354,
+      "latency_ms": 11201,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "debug-cache",
+      "category": "debugging",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 4221,
+          "tokens_out": 300,
+          "latency_ms": 8983,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 4221,
+      "tokens_out": 300,
+      "cost_usd": 0.000607,
+      "latency_ms": 8983,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-sqli",
+      "category": "security",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 7,
+      "checks_total": 7,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10417,
+          "tokens_out": 1184,
+          "latency_ms": 15237,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10417,
+      "tokens_out": 1184,
+      "cost_usd": 0.001765,
+      "latency_ms": 15237,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-shell",
+      "category": "security",
+      "arm": "fixed_workhorse",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 11225,
+          "tokens_out": 830,
+          "latency_ms": 104900,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 11225,
+      "tokens_out": 830,
+      "cost_usd": 0.001635,
+      "latency_ms": 104900,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-path",
+      "category": "security",
+      "arm": "fixed_workhorse",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 4,
+      "checks_total": 5,
+      "failures": [
+        "files.py: not_contains 'os.path.join(base, name)' failed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 4803,
+          "tokens_out": 710,
+          "latency_ms": 12645,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 4803,
+      "tokens_out": 710,
+      "cost_usd": 0.000912,
+      "latency_ms": 12645,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "broad-validate",
+      "category": "broad",
+      "arm": "fixed_workhorse",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 5,
+      "checks_total": 8,
+      "failures": [
+        "a.py: contains 'isinstance(cfg, dict)' failed",
+        "b.py: contains 'isinstance(cfg, dict)' failed",
+        "c.py: contains 'isinstance(cfg, dict)' failed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 12563,
+          "tokens_out": 1390,
+          "latency_ms": 200914,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 12563,
+      "tokens_out": 1390,
+      "cost_usd": 0.002106,
+      "latency_ms": 200914,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "data-migrate",
+      "category": "data-safety",
+      "arm": "fixed_workhorse",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 1,
+      "checks_total": 5,
+      "failures": [
+        "migrate.py: contains 'BEGIN' failed",
+        "migrate.py: contains 'ROLLBACK' failed",
+        "behavior:happy_path_is_transactional: AssertionError: ['DROP TABLE IF EXISTS users__pre_drop_legacy_flag', 'CREATE TABLE users__pre_drop_legacy_flag AS SELECT * FROM users', 'ALTER TABLE users DROP COLUMN legacy_flag', 'COMMIT']",
+        "behavior:failure_rolls_back_and_propagates: AttributeError: 'Conn' object has no attribute 'rollback'"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 0,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10480,
+          "tokens_out": 6451,
+          "latency_ms": 75288,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10480,
+      "tokens_out": 6451,
+      "cost_usd": 0.004932,
+      "latency_ms": 75288,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-rename",
+      "category": "mechanical",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 29581,
+          "tokens_out": 299,
+          "latency_ms": 51479,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        },
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 4767,
+          "tokens_out": 540,
+          "latency_ms": 13576,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 34348,
+      "tokens_out": 839,
+      "cost_usd": 0.003981,
+      "latency_ms": 65055,
+      "routing_ms": 0.0,
+      "retries": 1,
+      "escalations": 0,
+      "harness_retries": 1,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-port",
+      "category": "mechanical",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 9914,
+          "tokens_out": 207,
+          "latency_ms": 12303,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 9914,
+      "tokens_out": 207,
+      "cost_usd": 0.001128,
+      "latency_ms": 12303,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-import",
+      "category": "mechanical",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10286,
+          "tokens_out": 170,
+          "latency_ms": 99548,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10286,
+      "tokens_out": 170,
+      "cost_usd": 0.001143,
+      "latency_ms": 99548,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-offbyone",
+      "category": "bugfix",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 9962,
+          "tokens_out": 210,
+          "latency_ms": 10212,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 9962,
+      "tokens_out": 210,
+      "cost_usd": 0.001135,
+      "latency_ms": 10212,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-null",
+      "category": "bugfix",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 34930,
+          "tokens_out": 718,
+          "latency_ms": 11583,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 34930,
+      "tokens_out": 718,
+      "cost_usd": 0.003967,
+      "latency_ms": 11583,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-test",
+      "category": "bugfix",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 11053,
+          "tokens_out": 356,
+          "latency_ms": 166818,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 11053,
+      "tokens_out": 356,
+      "cost_usd": 0.001333,
+      "latency_ms": 166818,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "debug-mutation",
+      "category": "debugging",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10283,
+          "tokens_out": 463,
+          "latency_ms": 21418,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10283,
+      "tokens_out": 463,
+      "cost_usd": 0.001319,
+      "latency_ms": 21418,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "debug-cache",
+      "category": "debugging",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 34177,
+          "tokens_out": 358,
+          "latency_ms": 9818,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 34177,
+      "tokens_out": 358,
+      "cost_usd": 0.003675,
+      "latency_ms": 9818,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-sqli",
+      "category": "security",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 7,
+      "checks_total": 7,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 5754,
+          "tokens_out": 1954,
+          "latency_ms": 24842,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 5754,
+      "tokens_out": 1954,
+      "cost_usd": 0.001755,
+      "latency_ms": 24842,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-shell",
+      "category": "security",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10225,
+          "tokens_out": 737,
+          "latency_ms": 23449,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 10225,
+      "tokens_out": 737,
+      "cost_usd": 0.001477,
+      "latency_ms": 23449,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-path",
+      "category": "security",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10947,
+          "tokens_out": 790,
+          "latency_ms": 22282,
+          "reported_retries": 1,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        },
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 25279,
+          "tokens_out": 7267,
+          "latency_ms": 456354,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 36226,
+      "tokens_out": 8057,
+      "cost_usd": 0.008502,
+      "latency_ms": 478636,
+      "routing_ms": 0.0,
+      "retries": 2,
+      "escalations": 0,
+      "harness_retries": 1,
+      "harness_escalations": 0,
+      "reported_retries": 1,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "broad-validate",
+      "category": "broad",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 2,
+      "checks_total": 8,
+      "failures": [
+        "a.py: contains 'isinstance(cfg, dict)' failed",
+        "a.py: contains 'raise ValueError' failed",
+        "b.py: contains 'isinstance(cfg, dict)' failed",
+        "b.py: contains 'raise ValueError' failed",
+        "c.py: contains 'isinstance(cfg, dict)' failed",
+        "c.py: contains 'raise ValueError' failed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 12310,
+          "tokens_out": 1707,
+          "latency_ms": 30006,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        },
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 19276,
+          "tokens_out": 2873,
+          "latency_ms": 43327,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 31586,
+      "tokens_out": 4580,
+      "cost_usd": 0.005946,
+      "latency_ms": 73333,
+      "routing_ms": 0.0,
+      "retries": 1,
+      "escalations": 0,
+      "harness_retries": 1,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "data-migrate",
+      "category": "data-safety",
+      "arm": "fixed_workhorse_retry",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 13657,
+          "tokens_out": 4728,
+          "latency_ms": 76322,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 13657,
+      "tokens_out": 4728,
+      "cost_usd": 0.00422,
+      "latency_ms": 76322,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-rename",
+      "category": "mechanical",
+      "arm": "fixed_strong",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 1,
+      "checks_total": 4,
+      "failures": [
+        "app.py: contains 'def get_user(user)' failed",
+        "app.py: not_contains 'usr' failed",
+        "behavior:renamed_api_works: AttributeError: module 'app' has no attribute 'get_user'"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 0,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 26462,
+          "tokens_out": 450,
+          "latency_ms": 23632,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 26462,
+      "tokens_out": 450,
+      "cost_usd": 0.040224,
+      "latency_ms": 23632,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-port",
+      "category": "mechanical",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 13955,
+          "tokens_out": 155,
+          "latency_ms": 14602,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 13955,
+      "tokens_out": 155,
+      "cost_usd": 0.020389,
+      "latency_ms": 14602,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-import",
+      "category": "mechanical",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 13937,
+          "tokens_out": 112,
+          "latency_ms": 44147,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 13937,
+      "tokens_out": 112,
+      "cost_usd": 0.019935,
+      "latency_ms": 44147,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-offbyone",
+      "category": "bugfix",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 21546,
+          "tokens_out": 146,
+          "latency_ms": 21961,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 21546,
+      "tokens_out": 146,
+      "cost_usd": 0.030547,
+      "latency_ms": 21961,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-null",
+      "category": "bugfix",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 23897,
+          "tokens_out": 298,
+          "latency_ms": 20059,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 23897,
+      "tokens_out": 298,
+      "cost_usd": 0.035241,
+      "latency_ms": 20059,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "bug-test",
+      "category": "bugfix",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 18284,
+          "tokens_out": 267,
+          "latency_ms": 21117,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 18284,
+      "tokens_out": 267,
+      "cost_usd": 0.027353,
+      "latency_ms": 21117,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "debug-mutation",
+      "category": "debugging",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 14025,
+          "tokens_out": 169,
+          "latency_ms": 15172,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 14025,
+      "tokens_out": 169,
+      "cost_usd": 0.020624,
+      "latency_ms": 15172,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "debug-cache",
+      "category": "debugging",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 23984,
+          "tokens_out": 221,
+          "latency_ms": 21262,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 23984,
+      "tokens_out": 221,
+      "cost_usd": 0.034588,
+      "latency_ms": 21262,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-sqli",
+      "category": "security",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 7,
+      "checks_total": 7,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 15363,
+          "tokens_out": 147,
+          "latency_ms": 13018,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 15363,
+      "tokens_out": 147,
+      "cost_usd": 0.02221,
+      "latency_ms": 13018,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-shell",
+      "category": "security",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 23928,
+          "tokens_out": 241,
+          "latency_ms": 56624,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 23928,
+      "tokens_out": 241,
+      "cost_usd": 0.034713,
+      "latency_ms": 56624,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "sec-path",
+      "category": "security",
+      "arm": "fixed_strong",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 14498,
+          "tokens_out": 662,
+          "latency_ms": 17226,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 14498,
+      "tokens_out": 662,
+      "cost_usd": 0.026192,
+      "latency_ms": 17226,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "broad-validate",
+      "category": "broad",
+      "arm": "fixed_strong",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 5,
+      "checks_total": 8,
+      "failures": [
+        "a.py: contains 'isinstance(cfg, dict)' failed",
+        "b.py: contains 'isinstance(cfg, dict)' failed",
+        "c.py: contains 'isinstance(cfg, dict)' failed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 26960,
+          "tokens_out": 644,
+          "latency_ms": 105065,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 26960,
+      "tokens_out": 644,
+      "cost_usd": 0.042836,
+      "latency_ms": 105065,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "data-migrate",
+      "category": "data-safety",
+      "arm": "fixed_strong",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 1,
+      "checks_total": 5,
+      "failures": [
+        "migrate.py: contains 'BEGIN' failed",
+        "migrate.py: contains 'ROLLBACK' failed",
+        "behavior:happy_path_is_transactional: AssertionError: ['ALTER TABLE users RENAME COLUMN legacy_flag TO legacy_flag_deprecated', 'COMMIT']",
+        "behavior:failure_rolls_back_and_propagates: AssertionError: the failure was swallowed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 0,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/gemini-4-argon",
+      "tier": "T5",
+      "attempts": [
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 33872,
+          "tokens_out": 2574,
+          "latency_ms": 61830,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 33872,
+      "tokens_out": 2574,
+      "cost_usd": 0.071467,
+      "latency_ms": 61830,
+      "routing_ms": 0.0,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": null
+    },
+    {
+      "task": "mech-rename",
+      "category": "mechanical",
+      "arm": "autorouter",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 1,
+      "checks_total": 4,
+      "failures": [
+        "app.py: contains 'def get_user(user)' failed",
+        "app.py: not_contains 'usr' failed",
+        "behavior:renamed_api_works: AttributeError: module 'app' has no attribute 'get_user'"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 0,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 9953,
+          "tokens_out": 192,
+          "latency_ms": 10034,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        }
+      ],
+      "tokens_in": 9953,
+      "tokens_out": 192,
+      "cost_usd": 0.001123,
+      "latency_ms": 10066,
+      "routing_ms": 32.13,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "trivial",
+        "tier": "T2",
+        "delegate": false
+      }
+    },
+    {
+      "task": "mech-port",
+      "category": "mechanical",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/mimo-v2.6-flash",
+      "tier": "T1",
+      "attempts": [
+        {
+          "model": "opencode-go/mimo-v2.6-flash",
+          "tier": "T1",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 1684,
+          "tokens_out": 188,
+          "latency_ms": 16555,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/mimo-v2.6-flash"
+          ]
+        }
+      ],
+      "tokens_in": 1684,
+      "tokens_out": 188,
+      "cost_usd": 0.000212,
+      "latency_ms": 16606,
+      "routing_ms": 51.41,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "standard",
+        "tier": "T1",
+        "delegate": false
+      }
+    },
+    {
+      "task": "mech-import",
+      "category": "mechanical",
+      "arm": "autorouter",
+      "outcome": "infrastructure_error",
+      "success": false,
+      "checks_passed": 0,
+      "checks_total": 3,
+      "failures": [],
+      "adapter_error": "adapter timed out after 900s",
+      "behavior": {
+        "status": "not_applicable",
+        "reason": null,
+        "passed": 0,
+        "total": 0
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/mimo-v2.6-flash",
+      "tier": "T1",
+      "attempts": [
+        {
+          "model": "opencode-go/mimo-v2.6-flash",
+          "tier": "T1",
+          "role": "workhorse",
+          "status": "error",
+          "error": "adapter timed out after 900s",
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "latency_ms": 900103,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": []
+        }
+      ],
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "cost_usd": 0,
+      "latency_ms": 900138,
+      "routing_ms": 35.44,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "standard",
+        "tier": "T1",
+        "delegate": false
+      }
+    },
+    {
+      "task": "bug-offbyone",
+      "category": "bugfix",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/mimo-v2.6-flash",
+      "tier": "T1",
+      "attempts": [
+        {
+          "model": "opencode-go/mimo-v2.6-flash",
+          "tier": "T1",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 1821,
+          "tokens_out": 263,
+          "latency_ms": 18182,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/mimo-v2.6-flash"
+          ]
+        }
+      ],
+      "tokens_in": 1821,
+      "tokens_out": 263,
+      "cost_usd": 0.000246,
+      "latency_ms": 18249,
+      "routing_ms": 67.77,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "standard",
+        "tier": "T1",
+        "delegate": false
+      }
+    },
+    {
+      "task": "bug-null",
+      "category": "bugfix",
+      "arm": "autorouter",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 3,
+      "checks_total": 4,
+      "failures": [
+        "behavior:missing_user_does_not_raise: AssertionError: Unknown user"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/mimo-v2.6-flash",
+      "tier": "T1",
+      "attempts": [
+        {
+          "model": "opencode-go/mimo-v2.6-flash",
+          "tier": "T1",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 1723,
+          "tokens_out": 270,
+          "latency_ms": 23291,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/mimo-v2.6-flash"
+          ]
+        }
+      ],
+      "tokens_in": 1723,
+      "tokens_out": 270,
+      "cost_usd": 0.000238,
+      "latency_ms": 23320,
+      "routing_ms": 29.21,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "standard",
+        "tier": "T1",
+        "delegate": false
+      }
+    },
+    {
+      "task": "bug-test",
+      "category": "bugfix",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/mimo-v2.6-flash",
+      "tier": "T1",
+      "attempts": [
+        {
+          "model": "opencode-go/mimo-v2.6-flash",
+          "tier": "T1",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 8941,
+          "tokens_out": 259,
+          "latency_ms": 13605,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/mimo-v2.6-flash"
+          ]
+        }
+      ],
+      "tokens_in": 8941,
+      "tokens_out": 259,
+      "cost_usd": 0.000917,
+      "latency_ms": 13640,
+      "routing_ms": 35.73,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "standard",
+        "tier": "T1",
+        "delegate": false
+      }
+    },
+    {
+      "task": "debug-mutation",
+      "category": "debugging",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 4,
+      "checks_total": 4,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/mimo-v2.6-flash",
+      "tier": "T1",
+      "attempts": [
+        {
+          "model": "opencode-go/mimo-v2.6-flash",
+          "tier": "T1",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 2003,
+          "tokens_out": 447,
+          "latency_ms": 26031,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/mimo-v2.6-flash"
+          ]
+        }
+      ],
+      "tokens_in": 2003,
+      "tokens_out": 447,
+      "cost_usd": 0.000314,
+      "latency_ms": 26064,
+      "routing_ms": 33.25,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "standard",
+        "tier": "T1",
+        "delegate": false
+      }
+    },
+    {
+      "task": "debug-cache",
+      "category": "debugging",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/mimo-v2.6-flash",
+      "tier": "T1",
+      "attempts": [
+        {
+          "model": "opencode-go/mimo-v2.6-flash",
+          "tier": "T1",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 1895,
+          "tokens_out": 359,
+          "latency_ms": 16873,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/mimo-v2.6-flash"
+          ]
+        }
+      ],
+      "tokens_in": 1895,
+      "tokens_out": 359,
+      "cost_usd": 0.00028,
+      "latency_ms": 16900,
+      "routing_ms": 27.97,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "standard",
+        "tier": "T1",
+        "delegate": false
+      }
+    },
+    {
+      "task": "sec-sqli",
+      "category": "security",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 7,
+      "checks_total": 7,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/claude-haiku-5-5",
+      "tier": "T3",
+      "attempts": [
+        {
+          "model": "opencode-go/claude-haiku-5-5",
+          "tier": "T3",
+          "role": "specialist",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 6,
+          "tokens_out": 261,
+          "latency_ms": 4284,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/claude-haiku-5-5"
+          ]
+        }
+      ],
+      "tokens_in": 6,
+      "tokens_out": 261,
+      "cost_usd": 0.000131,
+      "latency_ms": 4311,
+      "routing_ms": 27.76,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "complex",
+        "tier": "T3",
+        "delegate": true
+      }
+    },
+    {
+      "task": "sec-shell",
+      "category": "security",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 6,
+      "checks_total": 6,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 3,
+        "total": 3
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/claude-haiku-5-5",
+      "tier": "T3",
+      "attempts": [
+        {
+          "model": "opencode-go/claude-haiku-5-5",
+          "tier": "T3",
+          "role": "specialist",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 8,
+          "tokens_out": 507,
+          "latency_ms": 6208,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/claude-haiku-5-5"
+          ]
+        }
+      ],
+      "tokens_in": 8,
+      "tokens_out": 507,
+      "cost_usd": 0.000254,
+      "latency_ms": 6245,
+      "routing_ms": 37.65,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "complex",
+        "tier": "T3",
+        "delegate": true
+      }
+    },
+    {
+      "task": "sec-path",
+      "category": "security",
+      "arm": "autorouter",
+      "outcome": "success",
+      "success": true,
+      "checks_passed": 5,
+      "checks_total": 5,
+      "failures": [],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 2,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/claude-haiku-5-5",
+      "tier": "T3",
+      "attempts": [
+        {
+          "model": "opencode-go/claude-haiku-5-5",
+          "tier": "T3",
+          "role": "specialist",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10,
+          "tokens_out": 453,
+          "latency_ms": 6995,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/claude-haiku-5-5"
+          ]
+        }
+      ],
+      "tokens_in": 10,
+      "tokens_out": 453,
+      "cost_usd": 0.000227,
+      "latency_ms": 7023,
+      "routing_ms": 28.51,
+      "retries": 0,
+      "escalations": 0,
+      "harness_retries": 0,
+      "harness_escalations": 0,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "complex",
+        "tier": "T3",
+        "delegate": true
+      }
+    },
+    {
+      "task": "broad-validate",
+      "category": "broad",
+      "arm": "autorouter",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 2,
+      "checks_total": 8,
+      "failures": [
+        "a.py: contains 'isinstance(cfg, dict)' failed",
+        "a.py: contains 'raise ValueError' failed",
+        "b.py: contains 'isinstance(cfg, dict)' failed",
+        "b.py: contains 'raise ValueError' failed",
+        "c.py: contains 'isinstance(cfg, dict)' failed",
+        "c.py: contains 'raise ValueError' failed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 1,
+        "total": 1
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "tier": "T2",
+      "attempts": [
+        {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "tier": "T2",
+          "role": "workhorse",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 24015,
+          "tokens_out": 2995,
+          "latency_ms": 275448,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/deepseek-v4.1-flash"
+          ]
+        },
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 32310,
+          "tokens_out": 1045,
+          "latency_ms": 57782,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 56325,
+      "tokens_out": 4040,
+      "cost_usd": 0.058297,
+      "latency_ms": 333259,
+      "routing_ms": 29.76,
+      "retries": 1,
+      "escalations": 1,
+      "harness_retries": 1,
+      "harness_escalations": 1,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "complex",
+        "tier": "T2",
+        "delegate": true
+      }
+    },
+    {
+      "task": "data-migrate",
+      "category": "data-safety",
+      "arm": "autorouter",
+      "outcome": "model_failure",
+      "success": false,
+      "checks_passed": 1,
+      "checks_total": 5,
+      "failures": [
+        "migrate.py: contains 'BEGIN' failed",
+        "migrate.py: contains 'ROLLBACK' failed",
+        "behavior:happy_path_is_transactional: AssertionError: ['ALTER TABLE users RENAME COLUMN legacy_flag TO legacy_flag_archived', 'COMMIT']",
+        "behavior:failure_rolls_back_and_propagates: AssertionError: the failure was swallowed"
+      ],
+      "adapter_error": null,
+      "behavior": {
+        "status": "ok",
+        "reason": null,
+        "passed": 0,
+        "total": 2
+      },
+      "sandbox": "bwrap",
+      "sandbox_requested": "auto",
+      "verified": true,
+      "model": "opencode-go/claude-haiku-5-5",
+      "tier": "T3",
+      "attempts": [
+        {
+          "model": "opencode-go/claude-haiku-5-5",
+          "tier": "T3",
+          "role": "specialist",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 10,
+          "tokens_out": 1114,
+          "latency_ms": 9813,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/claude-haiku-5-5"
+          ]
+        },
+        {
+          "model": "opencode-go/gemini-4-argon",
+          "tier": "T5",
+          "role": "strong",
+          "status": "ok",
+          "error": null,
+          "tokens_in": 30929,
+          "tokens_out": 1076,
+          "latency_ms": 51627,
+          "reported_retries": 0,
+          "reported_escalations": 0,
+          "trace": [
+            "opencode-go/gemini-4-argon"
+          ]
+        }
+      ],
+      "tokens_in": 30939,
+      "tokens_out": 2190,
+      "cost_usd": 0.053072,
+      "latency_ms": 61467,
+      "routing_ms": 27.83,
+      "retries": 1,
+      "escalations": 1,
+      "harness_retries": 1,
+      "harness_escalations": 1,
+      "reported_retries": 0,
+      "reported_escalations": 0,
+      "gate": {
+        "class": "complex",
+        "tier": "T3",
+        "delegate": true
+      }
+    }
+  ]
+}

@@ -37,6 +37,7 @@ Environment:
     AUTOROUTER_WORKDIR          required, working directory
     AUTOROUTER_AGENT            agent name, default `eval`
     AUTOROUTER_OPENCODE_BIN     CLI to run, default `opencode`
+    AUTOROUTER_ATTEMPT_TIMEOUT_S kill and retry a single stalled attempt, default 240
     AUTOROUTER_ADAPTER_BUDGET_S total retry budget, default 840
     AUTOROUTER_MAX_ATTEMPTS     default 3
     AUTOROUTER_OPENCODE_ARGS    extra CLI args, space separated
@@ -53,6 +54,9 @@ EXTRA_ARGS = os.environ.get("AUTOROUTER_OPENCODE_ARGS", "").split()
 OPENCODE = os.environ.get("AUTOROUTER_OPENCODE_BIN", "opencode")
 MAX_ATTEMPTS = max(1, int(os.environ.get("AUTOROUTER_MAX_ATTEMPTS", "3")))
 BUDGET_S = float(os.environ.get("AUTOROUTER_ADAPTER_BUDGET_S", "840"))
+# A single attempt that stalls (provider hangs, session never finishes) is killed
+# and retried instead of burning the whole harness timeout on one call.
+ATTEMPT_TIMEOUT_S = float(os.environ.get("AUTOROUTER_ATTEMPT_TIMEOUT_S", "240"))
 # OpenCode exposes no per-run temperature flag; the pinned temperature is
 # advisory to this adapter (pins.json settings.tool_policy says the same).
 MODEL_ENV = "AUTOROUTER_MODEL"
@@ -116,9 +120,16 @@ def run_once(model, workdir, prompt):
            "--agent", AGENT, "--archived", "--auto"] + EXTRA_ARGS
     started = time.monotonic()
     try:
-        proc = subprocess.run(cmd, cwd=workdir, input=prompt, text=True, capture_output=True)
+        proc = subprocess.run(cmd, cwd=workdir, input=prompt, text=True,
+                              capture_output=True, timeout=ATTEMPT_TIMEOUT_S)
     except FileNotFoundError:
         return {"fatal": f"{OPENCODE!r} not found on PATH", "latency_ms": 0}
+    except subprocess.TimeoutExpired:
+        return {
+            "fatal": f"attempt timed out after {int(ATTEMPT_TIMEOUT_S)}s",
+            "transient": True,
+            "latency_ms": int((time.monotonic() - started) * 1000),
+        }
     latency_ms = int((time.monotonic() - started) * 1000)
     tokens_in, tokens_out, steps, retries, error, trace = parse_stream(proc.stdout)
     result = {
