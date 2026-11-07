@@ -213,6 +213,16 @@ function modelKey(model) {
   return `${model.providerID}/${model.modelID}${model.variant ? `#${model.variant}` : ""}`
 }
 
+// session.switchModel takes a ref with `id` (not `modelID`); the ledger and the
+// tier map use the modelID naming. Keep the two conversions in one place.
+function switchRef(model) {
+  return {
+    providerID: String(model.providerID),
+    id: String(model.modelID ?? model.id),
+    ...(model.variant ? { variant: String(model.variant) } : {}),
+  }
+}
+
 // ---- plugin -----------------------------------------------------------------
 
 const plugin = {
@@ -257,7 +267,7 @@ const plugin = {
       const modelID = m.modelID ?? m.id
       if (!modelID) return
       const model = { providerID: String(m.providerID), modelID: String(modelID), ...(m.variant ? { variant: String(m.variant) } : {}) }
-      await ctx.session.switchModel({ sessionID, model })
+      await ctx.session.switchModel({ sessionID, model: switchRef(model) })
     }
 
     async function route(sessionID, text) {
@@ -315,7 +325,7 @@ const plugin = {
       }
 
       const model = resolved.ref
-      await ctx.session.switchModel({ sessionID, model })
+      await ctx.session.switchModel({ sessionID, model: switchRef(model) })
 
       entry.tier = resolved.tier
       if (resolved.tier !== tier) entry.tier_requested = tier

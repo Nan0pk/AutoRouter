@@ -69,7 +69,7 @@ function harness({ options = {}, sessions = {} } = {}) {
       async switchModel({ sessionID, model }) {
         switched.push({ sessionID, model })
         const s = store.get(sessionID)
-        if (s) s.model = { providerID: model.providerID, id: model.modelID }
+        if (s) s.model = { providerID: model.providerID, id: model.id }
       },
     },
     model: {
@@ -134,7 +134,7 @@ test("trivial decision routes to the configured T2 ref (no variant key)", async 
   })
   await h.prompt("s1")
   assert.deepEqual(h.switched, [
-    { sessionID: "s1", model: { providerID: "opencode-go", modelID: "deepseek-v4.1-flash" } },
+    { sessionID: "s1", model: { providerID: "opencode-go", id: "deepseek-v4.1-flash" } },
   ])
   assert.equal("variant" in h.switched[0].model, false)
 })
@@ -148,7 +148,7 @@ test("security risk routes to T4 and preserves #variant", async () => {
     sessions: { s1: freshSession() },
   })
   await h.prompt("s1")
-  assert.deepEqual(h.switched[0].model, { providerID: "opencode-go", modelID: "deepseek-v4-pro", variant: "high" })
+  assert.deepEqual(h.switched[0].model, { providerID: "opencode-go", id: "deepseek-v4-pro", variant: "high" })
 })
 
 test("data_loss risk also routes to T4", async () => {
@@ -164,7 +164,7 @@ test("tier_hint T3+ routes to T3", async () => {
     sessions: { s1: freshSession() },
   })
   await h.prompt("s1")
-  assert.equal(h.switched[0].model.modelID, "claude-haiku-5-5")
+  assert.equal(h.switched[0].model.id, "claude-haiku-5-5")
 })
 
 test("broad_scope routes to T3 (synthetic decision; classify.py gave risk [] for 'what is a migration')", async () => {
@@ -176,7 +176,7 @@ test("broad_scope routes to T3 (synthetic decision; classify.py gave risk [] for
     sessions: { s1: freshSession() },
   })
   await h.prompt("s1")
-  assert.equal(h.switched[0].model.modelID, "claude-haiku-5-5")
+  assert.equal(h.switched[0].model.id, "claude-haiku-5-5")
 })
 
 test("manually pinned session is not switched and writes no ledger line", async () => {
@@ -206,7 +206,7 @@ test("child session inherits the parent's concrete model and never runs the gate
   })
   await h.prompt("child")
   assert.deepEqual(h.switched, [
-    { sessionID: "child", model: { providerID: "opencode-go", modelID: "deepseek-v4-pro", variant: "high" } },
+    { sessionID: "child", model: { providerID: "opencode-go", id: "deepseek-v4-pro", variant: "high" } },
   ])
   assert.equal(existsSync(callLog), false, "gate must not be invoked for child sessions")
 })
@@ -228,7 +228,7 @@ test("gate exits non-zero -> routes to T2 and ledger carries gate_error", async 
     sessions: { s1: freshSession() },
   })
   await h.prompt("s1")
-  assert.equal(h.switched[0].model.modelID, "deepseek-v4.1-flash")
+  assert.equal(h.switched[0].model.id, "deepseek-v4.1-flash")
   const [line] = ledgerEntries(ledger)
   assert.equal(line.gate_error, "exit 3")
   assert.equal(line.tier, "T2")
@@ -258,7 +258,7 @@ test("missing gateArgs routes to T2 and flags gate: missing-config without runni
     sessions: { s1: freshSession() },
   })
   await h.prompt("s1")
-  assert.equal(h.switched[0].model.modelID, "deepseek-v4.1-flash")
+  assert.equal(h.switched[0].model.id, "deepseek-v4.1-flash")
   assert.equal(existsSync(callLog), false)
   const [line] = ledgerEntries(ledger)
   assert.equal(line.gate, "missing-config")
@@ -275,7 +275,7 @@ test("missing tier falls back to the next cheaper configured tier", async () => 
     sessions: { s1: freshSession() },
   })
   await h.prompt("s1")
-  assert.equal(h.switched[0].model.modelID, "claude-haiku-5-5")
+  assert.equal(h.switched[0].model.id, "claude-haiku-5-5")
   const [line] = ledgerEntries(ledger)
   assert.equal(line.tier, "T3")
   assert.equal(line.tier_requested, "T4")
