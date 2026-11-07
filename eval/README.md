@@ -146,6 +146,32 @@ python3 eval/run_eval.py --executor command \
   --markdown eval/results/run-$(date +%F).md
 ```
 
+### The OpenCode adapter
+
+`eval/adapters/opencode-adapter.py` implements that contract for the OpenCode CLI. It runs one
+non-interactive session per attempt (`opencode run --format json`), sums the `step_finish` token
+counts, counts provider retries, and prints the JSON line the harness expects.
+
+```bash
+bash scripts/install_opencode.sh          # installs the neutral `eval` agent alongside the example
+export AUTOROUTER_EVAL_CMD="python3 $PWD/eval/adapters/opencode-adapter.py"
+python3 eval/run_eval.py --executor command \
+  --tasks mech-rename --arms fixed_workhorse          # smoke test, one task
+python3 eval/run_eval.py --executor command \
+  --out eval/results/run-$(date +%F).json --markdown eval/results/run-$(date +%F).md
+```
+
+Two details that matter for validity:
+
+- **The `eval` agent is deliberately not the AutoRouter orchestrator.** `--model` pins the arm's
+  model, and the neutral agent has no delegation instructions; measuring a "fixed" arm through the
+  orchestrator would silently re-route part of the work to other models.
+- **Sessions are created with an explicit `--model`**, which the `auto-model-reset` plugin treats
+  as a manual choice, so it never resets them to `router/auto` mid-run.
+
+Remaining caveat: OpenCode exposes no per-run `temperature` flag, so `pins.json → temperature: 0`
+is advisory to this adapter, exactly as `settings.tool_policy` already is.
+
 Run each arm at least 5 times per task before comparing (the harness currently records one
 sample per task; variance is a known gap, see below), and record any prompt/temperature change in
 `pins.json`.

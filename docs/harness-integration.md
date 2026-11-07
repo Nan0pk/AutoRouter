@@ -64,7 +64,8 @@ Convert this to your harness's native shape with `scripts/build_router.py`, or h
 - **Orchestrator:** a `primary` agent (`agents/auto.md`) set as `default_agent`.
 - **Delegation:** `mode: subagent` agents with pinned `model:` fields.
 
-See `examples/opencode/`.
+See `examples/opencode/`. `scripts/install_opencode.sh` installs it into a config directory
+idempotently (backup + validation); `eval/adapters/` shows how to drive the CLI for measurement.
 
 ### Claude Code
 

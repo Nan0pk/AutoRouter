@@ -9,7 +9,7 @@ if grep -rInE "github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{30,}|x-access-token:
 fi
 
 echo "==> byte-compile scripts"
-python3 -m py_compile scripts/*.py
+python3 -m py_compile scripts/*.py eval/*.py eval/adapters/*.py
 
 echo "==> unit tests (gate calibration + docs claims)"
 python3 -m unittest discover -s tests -p "test_*.py"
@@ -203,5 +203,25 @@ if command -v node >/dev/null 2>&1; then
   echo "==> node syntax check (example plugins)"
   node --input-type=module -e "await import('./examples/opencode/plugins/auto-model-reset/index.js')" >/dev/null
 fi
+
+echo "==> install script: syntax, fresh install, idempotency"
+bash -n scripts/install_opencode.sh
+install_tmp=$(mktemp -d -t autorouter-install-XXXXXX)
+bash scripts/install_opencode.sh --config-dir "$install_tmp" >/dev/null
+test -f "$install_tmp/opencode.jsonc"
+test -f "$install_tmp/agents/eval.md"
+test -f "$install_tmp/plugins/auto-model-reset/index.js"
+bash scripts/install_opencode.sh --config-dir "$install_tmp" | grep -q "Already up to date"
+rm -rf "$install_tmp"
+echo "   ok (installs, re-runs without changes)"
+
+echo "==> eval adapter: fails closed without env, refuses an empty prompt"
+if python3 eval/adapters/opencode-adapter.py </dev/null >/dev/null 2>&1; then
+  echo "ERROR: adapter must fail when AUTOROUTER_MODEL/AUTOROUTER_WORKDIR are unset"; exit 1
+fi
+if AUTOROUTER_MODEL=stub/stub AUTOROUTER_WORKDIR=/tmp python3 eval/adapters/opencode-adapter.py </dev/null >/dev/null 2>&1; then
+  echo "ERROR: adapter must fail on an empty prompt"; exit 1
+fi
+echo "   ok (rejects missing env and empty prompt; no model call made)"
 
 echo "OK: all checks passed"

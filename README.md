@@ -90,11 +90,14 @@ AutoRouter/
 │   ├── calibrate_gate.py       # labelled-set calibration: under- vs over-routing
 │   ├── score_models.py         # benchmark + quota CSVs  ->  capability/value tiers
 │   ├── build_router.py         # scored tiers            ->  a starter router config
-│   └── validate_router.py      # validate a router config + resolve model IDs
-├── eval/                       # task set + arm comparison (no measured run yet)
+│   ├── validate_router.py      # validate a router config + resolve model IDs
+│   └── install_opencode.sh     # idempotent install of examples/opencode into a config dir
+├── eval/                       # task set + arm comparison
 │   ├── tasks.jsonl             # 13 self-contained tasks with declarative checks
 │   ├── pins.json               # pinned models, settings, costs, task-set hash
-│   └── run_eval.py             # fixed-workhorse vs fixed-strong vs AutoRouter
+│   ├── run_eval.py             # fixed-workhorse vs fixed-strong vs AutoRouter
+│   ├── adapters/               # real-harness adapters (opencode: CLI adapter + eval agent)
+│   └── results/                # measured reports (JSON + Markdown)
 ├── tests/
 │   ├── gate/labeled_prompts.csv # 162 labelled prompts + risk families
 │   └── test_classify.py         # gate unit + calibration-budget tests
@@ -145,11 +148,25 @@ All scripts are dependency-free Python 3.
 `examples/opencode/` contains a complete, working setup built with this methodology against
 **OpenCode Go** in October 2026:
 
-- An **11-model `T0`–`T5` ladder** in `opencode.jsonc` (quota-aware).
+- A **10-model `T0`–`T5` ladder** in `opencode.jsonc` (quota-aware).
 - A self-aware **`auto` orchestrator** agent that runs on the auto-routed model and delegates
   subtasks to pinned-model subagents (`helper`, `researcher`, `specialist`, `expert`).
 - An **`auto-model-reset` plugin** that returns the session to `router/auto` when a turn ends, so
   it never gets stuck on the last routed model.
+
+**Ladder entries are also a regional-availability claim.** The ladder names models the *account*
+must be able to call. On the account this example was built with, `opencode-go/muse-spark-*-contributor`
+answered every request with `403 RegionError: This model is not available in your country`, so it is
+not in this ladder. Probe a model (`opencode run --model <id> "say OK"`) before trusting it in a tier —
+a 403 mid-session is worse than one fewer candidate.
+
+Install it into your own OpenCode config (idempotent, backs up what it overwrites, and validates
+the result against the live model catalog):
+
+```bash
+bash scripts/install_opencode.sh --dry-run   # show the plan
+bash scripts/install_opencode.sh             # install into ~/.config/opencode
+```
 
 See `docs/methodology.md` for why each model landed where it did.
 
