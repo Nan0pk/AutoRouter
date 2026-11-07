@@ -179,6 +179,10 @@ the plumbing and is explicitly not evidence. So the quota-saving argument in thi
 design hypothesis, not a result — see [`docs/enforcement.md`](docs/enforcement.md#claims) and
 [`eval/README.md`](eval/README.md#status).
 
+The [checkpoint handoff pilot](eval/README.md#checkpoint-handoff-pilot) is a separate opt-in
+scenario. It tests a bounded workhorse repair, specialist handoff, and workhorse continuation
+using disposable workspaces. It can run offline or through a private OpenCode ACP worker.
+
 ## Design principles
 
 - **Never invent benchmark numbers.** If a model is absent from a leaderboard, mark it `n/a`.
