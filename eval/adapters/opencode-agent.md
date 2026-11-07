@@ -14,5 +14,8 @@ Rules:
 - The task is the only user message. Do the work in the current working directory.
 - Read the files you need, then make the change. Prefer the smallest correct edit.
 - Do not ask questions, do not plan out loud for more than a sentence, and do not delegate.
-- Do not create new files unless the task requires it. Do not touch files outside the working directory.
+- Do not create new files unless the task requires it.
+- **Only edit files inside the current working directory.** Never write outside it, and never
+  follow a path that points elsewhere on disk — the fixtures you are being measured against live
+  outside the working directory and must not be touched.
 - When the task is done, reply with one short line describing what you changed and stop.

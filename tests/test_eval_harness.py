@@ -165,6 +165,18 @@ class ReportValidity(unittest.TestCase):
         self.assertEqual(arm["success_rate_of_all_tasks"], 0.5)
 
 
+class FixtureIntegrity(unittest.TestCase):
+    def test_drift_detects_modified_fixture(self):
+        from run_eval import fixture_drift
+
+        before = {"a.py": "1", "b/c.py": "2"}
+        after = {"a.py": "1", "b/c.py": "3"}
+        self.assertEqual(fixture_drift(before, after), ["b/c.py"])
+        self.assertEqual(fixture_drift(before, dict(before)), [])
+        self.assertEqual(fixture_drift(before, {"a.py": "1"}), ["b/c.py"])
+        self.assertEqual(fixture_drift(before, {"a.py": "1", "d.py": "9"}), ["b/c.py", "d.py"])
+
+
 class BehaviouralVerification(unittest.TestCase):
     """Static text checks are weak; behavioural tests must carry the verdict."""
 

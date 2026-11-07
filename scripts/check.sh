@@ -281,4 +281,16 @@ print('   ok (2 retries reported, tokens from the successful attempt)')
 "
 rm -rf "$fake_dir"
 
+echo "==> fixtures are pristine (a write-through invalidates a run)"
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if ! git diff --quiet -- eval/fixtures; then
+    echo "ERROR: eval/fixtures/ is modified:"; git diff --stat -- eval/fixtures; exit 1
+  fi
+  git ls-files --others --exclude-standard -- eval/fixtures | grep -q . && {
+    echo "ERROR: untracked file under eval/fixtures/"; exit 1; }
+  echo "   ok (clean)"
+else
+  echo "   skipped (not a git checkout)"
+fi
+
 echo "OK: all checks passed"

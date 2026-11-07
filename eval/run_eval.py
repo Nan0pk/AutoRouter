@@ -109,6 +109,30 @@ def task_set_hash():
     return hashlib.sha256((EVAL / "tasks.jsonl").read_bytes()).hexdigest()
 
 
+FIXTURE_DIR = EVAL / "fixtures"
+
+
+def fixture_hashes():
+    """SHA-256 of every file under eval/fixtures/.
+
+    A task is supposed to edit only its copy in a temp workdir. When a model
+    writes through to the repository fixture, every later copy of that task
+    inherits a pre-fixed file and the arm scores a pass it did not earn, so the
+    run is invalidated rather than quietly contaminated.
+    """
+    out = {}
+    for path in sorted(FIXTURE_DIR.rglob("*")):
+        if path.is_file():
+            out[str(path.relative_to(FIXTURE_DIR))] = hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+    return out
+
+
+def fixture_drift(before, after):
+    return sorted(k for k in set(before) | set(after) if before.get(k) != after.get(k))
+
+
 def load_pins():
     pins = load_json(EVAL / "pins.json")
     actual = task_set_hash()
@@ -898,11 +922,26 @@ def main():
                 )
 
     records = []
+    fixtures_before = fixture_hashes()
     for arm in arms:
         for task in tasks:
             records.append(run_task(arm, task, args.executor, pins, sandbox=args.sandbox))
 
     report = build_report(records, pins, args.executor, arms)
+
+    drift = fixture_drift(fixtures_before, fixture_hashes())
+    if drift:
+        shown = ", ".join(drift[:4]) + ("..." if len(drift) > 4 else "")
+        report["validity"]["valid"] = False
+        report["validity"]["reasons"].append(
+            f"fixture drift: {len(drift)} repository fixture file(s) were modified during the "
+            f"run ({shown}); later copies of those tasks inherited a pre-fixed file"
+        )
+        report["warning"] = (
+            "INVALID RUN: a task wrote through to eval/fixtures/, so at least one arm's copy "
+            "was contaminated. Re-run after restoring the fixtures."
+        )
+        report["fixture_drift"] = drift
     markdown = render_markdown(report, arms)
 
     if args.self_test:
