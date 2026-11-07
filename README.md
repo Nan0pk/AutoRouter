@@ -51,12 +51,13 @@ what you must wire into a harness.
 | Provenance, evidence coverage, "insufficient evidence" tiers | **Implemented** — three-valued provenance (`verified`/`unverified`/`estimated`); `verified` requires a source URL and an archived snapshot | `scripts/score_models.py`, `data/README.md` |
 | Verified-vs-unverified reporting | **Implemented** — `verified_coverage` per model, `0/97` for the illustrative dataset | `scripts/score_models.py` |
 | Explicit token-mix + cache cost model (no blended input+output) | **Implemented** | `scripts/score_models.py` |
-| Complexity gate (heuristic) | **Implemented and calibrated** — 162 labelled prompts, 0% under-routing / 16.5% over-routing on the test split (**in-sample, not held-out accuracy**); **advisory** — nothing calls it at runtime | `scripts/classify.py`, `tests/gate/` |
-| Model selection per prompt | **External** — the OpenCode example relies on the `opencode-auto-model` plugin (referenced, not vendored or tested here) | `examples/opencode/` |
+| Complexity gate (heuristic) | **Implemented and calibrated** — 162 labelled prompts, 0% under-routing / 16.5% over-routing on the test split (**in-sample, not held-out accuracy**). **Enforced in the OpenCode example** (`gate-router` runs it before the first request); **advisory** in the generic toolkit | `scripts/classify.py`, `examples/opencode/plugins/gate-router/`, `tests/gate/` |
+| Model selection per prompt | **Implemented** (OpenCode example) — deterministic: `classify.py` decides the tier, the `tiers` map names the model, the session is pinned before the first request. `opencode-auto-model` (an LLM decider) stays supported as an alternative but is referenced, not vendored, and not in CI | `examples/opencode/` |
+| Routing decision ledger | **Implemented, not enforced** — one JSON line per decision (class, tier, model, gate duration; never the prompt text). Nothing reads it back: no rollup, no cap | `examples/opencode/plugins/gate-router/` |
 | Quota ledger / budget enforcement | **Not implemented** — quota is descriptive guidance only, with no counter or cap | — |
 | Delegation orchestration (pinned subagents) | **Advisory** (OpenCode agent prompts; nothing verifies the hand-off) | `examples/opencode/agents/` |
 | Return to `auto` after a turn | **Implemented** (OpenCode plugin) — only for sessions that started on auto; manual model choices are left alone | `examples/opencode/plugins/` |
-| End-to-end evaluation (success, cost, latency, escalations) | **Not yet run** — harness only, no results | `eval/` |
+| End-to-end evaluation (success, cost, latency, escalations) | **Run, then invalidated by provider faults** — fail-closed: `valid_evidence: false`. Re-running with bounded adapter retries | `eval/`, `eval/results/` |
 
 **Read [`docs/enforcement.md`](docs/enforcement.md) before relying on any of this.** It records,
 per capability, what actually runs versus what is advice. The short version: the methodology and
@@ -82,7 +83,7 @@ AutoRouter/
 │   ├── opencode/               # a complete, working OpenCode setup (Go plan)
 │   │   ├── opencode.jsonc
 │   │   ├── agents/             # orchestrator + delegation subagents
-│   │   └── plugins/            # auto-model-reset (return to auto after a turn)
+│   │   └── plugins/            # gate-router (enforced gate) + auto-model-reset
 │   └── generic/
 │       └── router.config.json  # harness-agnostic example
 ├── scripts/
@@ -148,11 +149,14 @@ All scripts are dependency-free Python 3.
 `examples/opencode/` contains a complete, working setup built with this methodology against
 **OpenCode Go** in October 2026:
 
-- A **10-model `T0`–`T5` ladder** in `opencode.jsonc` (quota-aware).
-- A self-aware **`auto` orchestrator** agent that runs on the auto-routed model and delegates
+- A **`T1`–`T5` tier map** plus a 10-model documented ladder in `opencode.jsonc` (quota-aware).
+- A **`gate-router` plugin** that runs `scripts/classify.py` before the first request of a session
+  and pins that session to the tier's model — deterministic, no decider tokens, and every decision
+  is appended to a JSONL ledger.
+- A self-aware **`auto` orchestrator** agent that runs on the routed model and delegates
   subtasks to pinned-model subagents (`helper`, `researcher`, `specialist`, `expert`).
 - An **`auto-model-reset` plugin** that returns the session to `router/auto` when a turn ends, so
-  it never gets stuck on the last routed model.
+  it never gets stuck on the last routed model and the next prompt is re-gated.
 
 **Ladder entries are also a regional-availability claim.** The ladder names models the *account*
 must be able to call. On the account this example was built with, `opencode-go/muse-spark-*-contributor`

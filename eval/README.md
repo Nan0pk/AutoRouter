@@ -152,6 +152,13 @@ python3 eval/run_eval.py --executor command \
 non-interactive session per attempt (`opencode run --format json`), sums the `step_finish` token
 counts, counts provider retries, and prints the JSON line the harness expects.
 
+A **429 / "server is overloaded" / "prefill_cap_refused"** is retried up to
+`AUTOROUTER_MAX_ATTEMPTS` (default 3) with backoff, inside `AUTOROUTER_ADAPTER_BUDGET_S`
+(default 840 s, below the 900 s harness timeout). Every attempt's tokens are counted — they were
+billed — and the extra attempts are reported as `retries`, so a run that needed three tries never
+looks as cheap as one that needed one. A non-transient failure is still fail-closed: zero usage,
+no JSON, or an unrelated non-zero exit is an `infrastructure_error`, never a model failure.
+
 ```bash
 bash scripts/install_opencode.sh          # installs the neutral `eval` agent alongside the example
 export AUTOROUTER_EVAL_CMD="python3 $PWD/eval/adapters/opencode-adapter.py"
@@ -167,7 +174,8 @@ Two details that matter for validity:
   model, and the neutral agent has no delegation instructions; measuring a "fixed" arm through the
   orchestrator would silently re-route part of the work to other models.
 - **Sessions are created with an explicit `--model`**, which the `auto-model-reset` plugin treats
-  as a manual choice, so it never resets them to `router/auto` mid-run.
+  as a manual choice and which the `gate-router` plugin leaves alone (it only routes sessions still
+  on `router/*`). Neither can re-route a measured run mid-flight.
 
 Remaining caveat: OpenCode exposes no per-run `temperature` flag, so `pins.json → temperature: 0`
 is advisory to this adapter, exactly as `settings.tool_policy` already is.

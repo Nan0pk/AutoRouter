@@ -3,11 +3,12 @@
 This document specifies the *runtime* behavior an AutoRouter implementation **should** provide.
 It is the contract that `schema/autorouter.schema.json` and the example configs describe.
 
-> **Status: mostly advisory.** See [`enforcement.md`](enforcement.md) for the authoritative
-> enforced-vs-advisory table. No runtime path in this repository calls the gate (§2) or
-> decrements a quota. Model selection (§3) is done by the harness — in the OpenCode example, by
-> the external `opencode-auto-model` plugin. Delegation (§4) is prompt-level advice. The
-> classifier's own error profile *is* measured (§2b); the route is not.
+> **Status: enforced in the OpenCode example, advisory everywhere else.** See
+> [`enforcement.md`](enforcement.md) for the authoritative enforced-vs-advisory table. The
+> OpenCode example ships `plugins/gate-router`, which runs `scripts/classify.py` before the first
+> request and pins the session to that tier's model, so the gate (§2) decides the route there and
+> every decision is written to a ledger. Nothing decrements a quota. Delegation (§4) is still
+> prompt-level advice. The classifier's own error profile *is* measured (§2b).
 
 ---
 
@@ -151,6 +152,11 @@ route(task):
   return apply_effort(picked, choice.effort)
 ```
 
+The example implements this step deterministically: `plugins/gate-router` uses the gate (§2) as
+the decider instead of an LLM, so the choice is the tier map's model, not a judgment call. Picking
+an LLM decider (`opencode-auto-model`) remains a supported alternative — see
+[`harness-integration.md`](harness-integration.md).
+
 Hard requirements (**for a harness that implements this step** — none of them are enforced by
 this repository):
 - **Pick a decision cadence and document it** (see §3a). "One decision per session" and
@@ -227,7 +233,8 @@ through plugin storage, so a config reload or server restart does not resurrect 
   left alone.
 - **Plugin order is the discriminator.** Hooks run in plugin order, and the TUI pins a model by
   calling `switchModel()` immediately *before* `session.prompt()`, so a manual pick is always
-  fresh at the prompt hook too. Listing `auto-model-reset` **before** `opencode-auto-model` makes
+  fresh at the prompt hook too. Listing `auto-model-reset` **before** the router plugin
+  (`gate-router` in the example) makes
   the check exact: the reset plugin sees the model *before* the router switches, so `router/*`
   means "nothing pinned" and a concrete model means "you pinned it". Listing it after the router
   falls back to a timing window (a router switch is ~0 ms old, a human pick usually is not) and

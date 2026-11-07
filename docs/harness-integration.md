@@ -57,10 +57,12 @@ Convert this to your harness's native shape with `scripts/build_router.py`, or h
 
 ### OpenCode (worked example)
 
-- **Router:** `opencode-auto-model` plugin (`model: "router/auto"`), configured via
-  `plugins[].options.models` — this is the `T0`–`T5` ladder.
-- **Decider:** `opencode/jev-1.13` via the OpenCode Console connection (returns a choice *from*
-  the candidate set, so it can't miss the exact-match).
+- **Router:** `plugins/gate-router` (vendored and unit-tested here) provides `model:
+  "router/auto"`, runs `scripts/classify.py` on the first prompt, and pins the session to
+  `options.tiers[tier]`. `opencode-auto-model` is the LLM-decider alternative: it needs
+  `plugins[].options.models` (the descriptive ladder) instead of a tier map.
+- **Decider:** for the example, the gate (deterministic, no tokens). `opencode-auto-model` uses
+  Jev via the OpenCode Console/OpenRouter connection, or a fast catalog model as a fallback.
 - **Orchestrator:** a `primary` agent (`agents/auto.md`) set as `default_agent`.
 - **Delegation:** `mode: subagent` agents with pinned `model:` fields.
 

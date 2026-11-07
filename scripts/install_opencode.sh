@@ -49,6 +49,16 @@ done
 SRC="$REPO/examples/opencode"
 [ -f "$SRC/opencode.jsonc" ] || { echo "ERROR: $SRC/opencode.jsonc not found" >&2; exit 1; }
 
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/opencode"
+
+# The example config carries placeholders so the repo stays relocatable:
+#   __AUTOROUTER_REPO__   -> this checkout (gate-router needs classify.py)
+#   __AUTOROUTER_STATE__  -> the ledger directory
+render() {
+  sed -e "s|__AUTOROUTER_REPO__|$REPO|g" \
+      -e "s|__AUTOROUTER_STATE__|$STATE_DIR|g" "$1"
+}
+
 say() { printf '%s\n' "$*"; }
 run() {
   if [ "$DRY_RUN" -eq 1 ]; then
@@ -80,20 +90,22 @@ for entry in "${PLAN[@]}"; do
   src="$REPO/${entry%%|*}"
   dst="$CONFIG_DIR/${entry##*|}"
   [ -f "$src" ] || { echo "ERROR: missing source file: $src" >&2; exit 1; }
-  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then
+  if [ -f "$dst" ] && cmp -s <(render "$src") "$dst"; then
     continue
   fi
   changed+=("$entry")
 done
 
-PLUGIN_SRC="$SRC/plugins/auto-model-reset"
-PLUGIN_DST="$CONFIG_DIR/plugins/auto-model-reset"
-plugin_changed=1
-if [ -d "$PLUGIN_DST" ] && diff -rq "$PLUGIN_SRC" "$PLUGIN_DST" >/dev/null 2>&1; then
-  plugin_changed=0
-fi
+PLUGINS=(auto-model-reset gate-router)
+plugin_changed=()
+for name in "${PLUGINS[@]}"; do
+  if [ -d "$CONFIG_DIR/plugins/$name" ] && diff -rq "$SRC/plugins/$name" "$CONFIG_DIR/plugins/$name" >/dev/null 2>&1; then
+    continue
+  fi
+  plugin_changed+=("$name")
+done
 
-if [ "${#changed[@]}" -eq 0 ] && [ "$plugin_changed" -eq 0 ]; then
+if [ "${#changed[@]}" -eq 0 ] && [ "${#plugin_changed[@]}" -eq 0 ]; then
   say "Already up to date. Nothing to do."
   exit 0
 fi
@@ -109,18 +121,22 @@ if [ "${#changed[@]}" -gt 0 ]; then
     fi
   done
 fi
-[ "$plugin_changed" -eq 1 ] && say "Plugin: plugins/auto-model-reset (copy/update)"
+for name in "${plugin_changed[@]}"; do
+  say "Plugin: plugins/$name (copy/update)"
+done
 say ""
 
 BACKUP="$CONFIG_DIR/.backup-$STAMP"
 BACKUP_MADE=0
-if [ "${#changed[@]}" -gt 0 ] || [ "$plugin_changed" -eq 1 ]; then
+if [ "${#changed[@]}" -gt 0 ] || [ "${#plugin_changed[@]}" -gt 0 ]; then
   run mkdir -p "$CONFIG_DIR"
   needs_backup=0
   for entry in "${changed[@]}"; do
     [ -f "$CONFIG_DIR/${entry##*|}" ] && needs_backup=1
   done
-  [ -d "$PLUGIN_DST" ] && needs_backup=1
+  for name in "${plugin_changed[@]}"; do
+    [ -d "$CONFIG_DIR/plugins/$name" ] && needs_backup=1
+  done
   if [ "$needs_backup" -eq 1 ]; then
     run mkdir -p "$BACKUP"
     for entry in "${changed[@]}"; do
@@ -130,10 +146,12 @@ if [ "${#changed[@]}" -gt 0 ] || [ "$plugin_changed" -eq 1 ]; then
         run cp -p "$CONFIG_DIR/$rel" "$BACKUP/$rel"
       fi
     done
-    if [ -d "$PLUGIN_DST" ]; then
-      run mkdir -p "$BACKUP/plugins"
-      run cp -a "$PLUGIN_DST" "$BACKUP/plugins/"
-    fi
+    for name in "${plugin_changed[@]}"; do
+      if [ -d "$CONFIG_DIR/plugins/$name" ]; then
+        run mkdir -p "$BACKUP/plugins"
+        run cp -a "$CONFIG_DIR/plugins/$name" "$BACKUP/plugins/"
+      fi
+    done
     say "  backup: $BACKUP"
     BACKUP_MADE=1
   fi
@@ -143,14 +161,18 @@ for entry in "${changed[@]}"; do
   src="$REPO/${entry%%|*}"
   rel="${entry##*|}"
   run mkdir -p "$CONFIG_DIR/$(dirname "$rel")"
-  run cp -p "$src" "$CONFIG_DIR/$rel"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    run "render+write $src -> $CONFIG_DIR/$rel"
+  else
+    render "$src" > "$CONFIG_DIR/$rel"
+  fi
 done
 
-if [ "$plugin_changed" -eq 1 ]; then
-  run rm -rf "$PLUGIN_DST"
-  run mkdir -p "$(dirname "$PLUGIN_DST")"
-  run cp -a "$PLUGIN_SRC" "$PLUGIN_DST"
-fi
+for name in "${plugin_changed[@]}"; do
+  run rm -rf "$CONFIG_DIR/plugins/$name"
+  run mkdir -p "$CONFIG_DIR/plugins"
+  run cp -a "$SRC/plugins/$name" "$CONFIG_DIR/plugins/$name"
+done
 
 say ""
 say "Validating installed config"

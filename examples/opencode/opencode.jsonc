@@ -1,10 +1,11 @@
 // ADVISORY BOUNDARY (see docs/enforcement.md):
-// - The complexity gate in scripts/classify.py is NOT wired into this config. Nothing here
-//   calls it; the `auto` orchestrator is merely asked to apply the same rules.
-// - The quota figures below are descriptive text inside model descriptions. There is no ledger
-//   and no budget cap; `opencode-auto-model` does not read them.
-// - Model selection for "router/auto" is done entirely by the opencode-auto-model plugin,
-//   which is referenced here but not vendored or tested in this repository.
+// - The complexity gate IS wired into this config: the `gate-router` plugin runs
+//   scripts/classify.py before the first request and pins the session to that
+//   tier's model. That part is enforced and covered by tests.
+// - The quota figures below are descriptive text inside model descriptions. There is no budget
+//   cap; nothing refuses a request when an allowance is exhausted.
+// - `delegate` from the gate is only recorded (in the ledger) and mentioned to the orchestrator.
+//   Nothing verifies that a subtask actually went to the pinned subagent.
 {
   "$schema": "https://opencode.ai/config.json",
   "snapshots": true,
@@ -28,9 +29,29 @@
       }
     },
     {
-      "package": "opencode-auto-model@0.2.0",
+      // Deterministic router: classify.py decides the tier before the first
+      // request, then the session is pinned to that tier's model. No LLM is
+      // asked to judge the prompt, so there is no decider quota and no
+      // decision variance.
+      "package": "./plugins/gate-router",
       "options": {
-        "fallback": "opencode-go/deepseek-v4.1-flash",
+        "name": "Auto",
+        "gateCommand": "python3",
+        // __AUTOROUTER_REPO__ is substituted by scripts/install_opencode.sh.
+        "gateArgs": ["__AUTOROUTER_REPO__/scripts/classify.py"],
+        "ledger": "__AUTOROUTER_STATE__/gate-router.jsonl",
+        "failClosed": false,
+        // Authoritative tier map. Every ref must also appear in `models` below
+        // (validate_router.py fails when the two drift).
+        "tiers": {
+          "T1": "opencode-go/mimo-v2.6-flash",
+          "T2": "opencode-go/deepseek-v4.1-flash",
+          "T3": "opencode-go/claude-haiku-5-5",
+          "T4": "opencode-go/deepseek-v4-pro",
+          "T5": "opencode-go/gemini-4-argon"
+        },
+        // Documentation for humans and for validate_router.py. The router does
+        // not read these descriptions; the tier map above is what it uses.
         "models": {
           // Ladder = models this account can call. Region-blocked models are excluded:
           // opencode-go/muse-spark-*-contributor answered 403 RegionError on the account

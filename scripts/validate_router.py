@@ -119,8 +119,21 @@ def main():
         )
         opts = entry.get("options", {}) if isinstance(entry, dict) else {}
         models = opts.get("models")
+        tiers = opts.get("tiers") if isinstance(opts.get("tiers"), dict) else None
+        used_tiers = bool(tiers)
         if isinstance(models, dict):
             models = [{"id": k, "description": v} for k, v in models.items()]
+        if tiers and models is None:
+            # Deterministic routers (gate-router) configure a tier map instead of prose.
+            models = [{"id": ref, "tier": tier} for tier, ref in tiers.items()]
+        elif tiers:
+            # Both present: the tier map is authoritative, the prose is documentation.
+            by_id = {m.get("id"): m for m in models}
+            for tier, ref in tiers.items():
+                if ref in by_id:
+                    by_id[ref]["tier"] = tier
+                else:
+                    errors.append(f"tiers.{tier} -> {ref!r} is not listed in options.models (docs drift)")
         cfg = {"models": models, "fallback": opts.get("fallback")}
 
     if not isinstance(models, list) or not models:
@@ -168,7 +181,10 @@ def main():
 
     fb = cfg.get("fallback")
     if fb is None:
-        warnings.append("no fallback set")
+        # A tier-map router has no single fallback: it degrades to the next
+        # cheaper configured tier instead.
+        if not locals().get("used_tiers"):
+            warnings.append("no fallback set")
     elif fb not in seen:
         errors.append(f"fallback {fb!r} is not among the configured models")
 

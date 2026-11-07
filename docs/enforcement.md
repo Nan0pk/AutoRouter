@@ -12,8 +12,9 @@ it — `tests/test_docs_claims.py` fails the build when they do not.
 | Benchmark provenance + evidence coverage | **Enforced** (offline) | `scripts/score_models.py` rejects an observation with no `source` / `source_kind` / `benchmark_version` / `collected_on` / `conditions`; emits `insufficient evidence` instead of a tier below `--min-coverage` | `scripts/check.sh`, `schema/scored.schema.json` |
 | Tier assignment + router config generation | **Enforced** (offline) | `score_models.py`, `build_router.py` (skips null tiers) | `scripts/check.sh` |
 | Config validation | **Enforced** | `scripts/validate_router.py`; JSON Schema in CI | CI `Schema validation` step |
-| Complexity gate | **Advisory** | `scripts/classify.py` is a library + CLI. **No runtime path calls it.** In the OpenCode example the orchestrator model is *asked* to follow `agents/auto.md`; nothing verifies that it did | `tests/gate/`, `scripts/calibrate_gate.py` measure the heuristic, not the route |
-| Model selection per prompt | **External** | The `opencode-auto-model` plugin named in `examples/opencode/opencode.jsonc`. It is referenced, not vendored, and not exercised by this repo's CI | config only |
+| Complexity gate | **Enforced in the OpenCode example** (`examples/opencode/plugins/gate-router`); **advisory** in the generic toolkit | The plugin runs `scripts/classify.py --json -- <prompt>` on a session's first prompt and switches the session to the tier's model before any request. Outside that example nothing calls the gate | `scripts/check.sh` runs the plugin's unit tests; a live probe reads the chosen model back from the session |
+| Model selection per prompt | **Enforced in the OpenCode example** — deterministic (`classify.py` + the `tiers` map). `opencode-auto-model` (an LLM decider) remains a supported alternative, but is referenced, not vendored, and not in CI | the plugin pins the session model; a manually pinned session is never overridden | `examples/opencode/plugins/gate-router/` |
+| Routing decision ledger | **Implemented, not enforced** | The plugin appends one JSON line per decision (class, tier, model, gate duration — never the prompt text). Nothing reads it back: no monthly rollup, no cap, no refusal | `gate-router.jsonl` in the state dir |
 | Quota ledger / budget enforcement | **Not implemented** | Nothing. Quota appears as descriptive text in model descriptions and as `req_per_month` hints in scoring. There is no counter, no ledger, no cap | — |
 | Delegation orchestration | **Advisory** | Prompt-level instructions (`agents/auto.md`, `templates/orchestrator.md`). No check that a subtask actually went to the pinned agent | — |
 | Return to `auto` after a turn | **Enforced** (OpenCode only) | `examples/opencode/plugins/auto-model-reset/index.js`, for sessions whose origin is `auto` (manual model choices are never reset); CI runs its behavioural tests | `scripts/check.sh` |
@@ -35,18 +36,21 @@ is rejected. Specifically:
 So: **the methodology is real, the measurements in this repo are real, and the runtime policy is
 advice.** Where the README says a mechanism is advisory, this is what that means.
 
-## Why the gate and quotas are not wired in
+## Why the gate is wired in, and quotas are not
 
 1. **The injection points belong to the harness.** AutoRouter assumes only `chooseModel(task)`
-   and `delegate(subtask, agent)`. Every harness implements those differently; a single
-   implementation would be a plugin for one tool, not a harness-agnostic toolkit.
-2. **Wiring a heuristic in changes behaviour silently.** The gate is right about under-routing
-   on the labelled set, but it over-routes ~17% of short mechanical prompts. Enforcing it would
-   spend real quota on that error; the OpenCode example deliberately leaves the decision with
-   the model, where the cost is visible in the conversation.
-3. **A quota ledger needs persistence and a trust boundary.** Monthly counters keyed on
-   subscription, surviving restarts, shared across sessions — that is a product decision, not a
-   script.
+   and `delegate(subtask, agent)`. The OpenCode plugin is one implementation of `chooseModel`;
+   the generic toolkit stays harness-agnostic.
+2. **An LLM decider was the weak link.** Routing used to be delegated to a decider model. It
+   over-routed trivial prompts to the frontier tier in live sessions, and the same prompts routed
+   cheaply when replayed, i.e. the decision was not reproducible. `classify.py` is deterministic,
+   ~30 ms, costs nothing, and its error profile is measured on 162 labelled prompts (0%
+   under-routing / 16.5% over-routing). Trading an unmeasured decider error for a measured
+   over-routing rate is the point of the swap.
+3. **The ledger is deliberate, the budget is not built.** Decisions are logged so the over-routing
+   rate can be checked against real traffic. A quota ledger needs persistence and a trust
+   boundary ($/month counters keyed on the subscription, surviving restarts, shared across
+   sessions) — that is a product decision, not a script.
 
 ## What enforcement would actually require
 
@@ -64,10 +68,11 @@ Until one of those exists, treat every routing and quota statement in this repo 
 
 ## Claims
 
-- **Quota savings are unvalidated.** No measured run compares AutoRouter against a fixed model.
-  The argument that routing cheap work down saves quota is a design rationale, not a result.
-  See [`eval/`](../eval/README.md) for the harness that would produce the number, and its current
-  status: built and CI-tested, **no measured run committed**.
+- **Quota savings are unvalidated.** No *valid* measured run yet compares AutoRouter against a
+  fixed model. The argument that routing cheap work down saves quota is a design rationale, not a
+  result. See [`eval/`](../eval/README.md) for the harness and its status: the first measured run
+  was invalidated by provider faults, and is being re-run under the fail-closed rules
+  (`valid_evidence` is only true when every task executed).
 - **Gate accuracy is measured, but only for the classifier.** 0% under-routing / ~17%
   over-routing on 162 labelled prompts (`tests/gate/README.md`). That is a property of
   `classify.py`, not of any router that may or may not call it.

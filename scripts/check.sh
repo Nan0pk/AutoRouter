@@ -200,8 +200,33 @@ if command -v node >/dev/null 2>&1; then
   echo "==> node: auto-model-reset behaviour (manual models are never reset)"
   node --test examples/opencode/plugins/auto-model-reset/index.test.js
 
+  echo "==> node: gate-router (deterministic tier mapping, ledger, inheritance)"
+  node --test examples/opencode/plugins/gate-router/index.test.js
+
+  echo "==> gate-router: policy against the real classify.py"
+  node --input-type=module -e "
+import { execFileSync } from 'node:child_process'
+import { tierFor } from './examples/opencode/plugins/gate-router/index.js'
+const cases = [
+  ['rename foo to bar', 'T2'],
+  ['fix the SQL injection in repo.py', 'T4'],
+  ['the app deadlocks under load; the async pipeline refactor introduced it', 'T3'],
+  ['add config validation to all three modules', 'T3'],
+]
+for (const [prompt, want] of cases) {
+  const out = execFileSync('python3', ['scripts/classify.py', '--json', '--', prompt], { encoding: 'utf8' })
+  const got = tierFor(JSON.parse(out))
+  if (got !== want) {
+    console.error('MISMATCH:', JSON.stringify(prompt), 'got', got, 'want', want)
+    process.exit(1)
+  }
+}
+console.log('   ok (4 real gate decisions map to the expected tiers)')
+"
+
   echo "==> node syntax check (example plugins)"
   node --input-type=module -e "await import('./examples/opencode/plugins/auto-model-reset/index.js')" >/dev/null
+  node --input-type=module -e "await import('./examples/opencode/plugins/gate-router/index.js')" >/dev/null
 fi
 
 echo "==> install script: syntax, fresh install, idempotency"
@@ -211,6 +236,12 @@ bash scripts/install_opencode.sh --config-dir "$install_tmp" >/dev/null
 test -f "$install_tmp/opencode.jsonc"
 test -f "$install_tmp/agents/eval.md"
 test -f "$install_tmp/plugins/auto-model-reset/index.js"
+test -f "$install_tmp/plugins/gate-router/index.js"
+grep -q '"package": "./plugins/gate-router"' "$install_tmp/opencode.jsonc"
+grep -q "gateArgs" "$install_tmp/opencode.jsonc"
+if grep -q "__AUTOROUTER_" "$install_tmp/opencode.jsonc"; then
+  echo "ERROR: installer left an unresolved placeholder in opencode.jsonc"; exit 1
+fi
 bash scripts/install_opencode.sh --config-dir "$install_tmp" | grep -q "Already up to date"
 rm -rf "$install_tmp"
 echo "   ok (installs, re-runs without changes)"
@@ -223,5 +254,31 @@ if AUTOROUTER_MODEL=stub/stub AUTOROUTER_WORKDIR=/tmp python3 eval/adapters/open
   echo "ERROR: adapter must fail on an empty prompt"; exit 1
 fi
 echo "   ok (rejects missing env and empty prompt; no model call made)"
+
+echo "==> eval adapter: a transient 429 is retried, billed and reported"
+fake_dir=$(mktemp -d -t autorouter-fake-XXXXXX)
+cat > "$fake_dir/fake-opencode" <<'FAKE'
+#!/usr/bin/env bash
+count_file="$(dirname "$0")/count"
+n=$(cat "$count_file" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$count_file"
+if [ "$n" -lt 3 ]; then
+  printf '%s\n' '{"type":"error","error":{"type":"provider.rate-limit","message":"[overloaded] server is overloaded","status":429}}'
+  exit 1
+fi
+printf '%s\n' '{"type":"step_finish","part":{"tokens":{"input":100,"output":20}}}'
+FAKE
+chmod +x "$fake_dir/fake-opencode"
+result=$(printf 'x\n' | AUTOROUTER_MODEL=stub/stub AUTOROUTER_WORKDIR=/tmp \
+  AUTOROUTER_OPENCODE_BIN="$fake_dir/fake-opencode" \
+  python3 "$PWD/eval/adapters/opencode-adapter.py" 2>/dev/null) || {
+  echo "ERROR: adapter did not recover from a transient fault"; rm -rf "$fake_dir"; exit 1; }
+printf '%s' "$result" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['tokens_in'] == 100 and d['tokens_out'] == 20, d
+assert d['retries'] == 2, d
+print('   ok (2 retries reported, tokens from the successful attempt)')
+"
+rm -rf "$fake_dir"
 
 echo "OK: all checks passed"
