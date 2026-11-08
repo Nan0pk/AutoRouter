@@ -23,7 +23,7 @@ command  The real path. Runs one command per attempt with the prompt on stdin:
 
              AUTOROUTER_MODEL=provider/model \
              AUTOROUTER_TASK_ID=mech-rename \
-             AUTOROUTER_WORKDIR=/tmp/... \
+             AUTOROUTER_WORKDIR=/work \
              $AUTOROUTER_EVAL_CMD
 
          The command edits files in its working directory and must print one
@@ -33,8 +33,8 @@ command  The real path. Runs one command per attempt with the prompt on stdin:
               "retries": 0, "escalations": 0, "trace": ["provider/model"]}
 
          Missing/zero usage, a non-zero exit, or unparseable stdout is an
-         infrastructure error. The harness verifies the files afterwards; it
-         never executes model output.
+         infrastructure error. The adapter runs in a disposable Bubblewrap
+         filesystem. A separate offline sandbox grades its output.
 
 Scope
 -----
@@ -71,6 +71,8 @@ import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+import isolation
 
 EVAL = Path(__file__).resolve().parent
 ROOT = EVAL.parent
@@ -109,6 +111,20 @@ def task_set_hash():
     return hashlib.sha256((EVAL / "tasks.jsonl").read_bytes()).hexdigest()
 
 
+def suite_hash():
+    """Fingerprint fixtures and graders as well as the task descriptions."""
+    manifest = []
+    paths = [EVAL / "tasks.jsonl"]
+    for directory in (EVAL / "fixtures", EVAL / "behavior"):
+        paths.extend(p for p in directory.rglob("*") if "__pycache__" not in p.parts
+                     and (p.is_file() or p.is_symlink()))
+    for path in sorted(paths):
+        if path.is_symlink():
+            raise SystemExit(f"ERROR: unexpected symlink in the task suite: {path}")
+        manifest.append((str(path.relative_to(EVAL)), hashlib.sha256(path.read_bytes()).hexdigest()))
+    return hashlib.sha256(json.dumps(manifest).encode()).hexdigest()
+
+
 def load_pins():
     pins = load_json(EVAL / "pins.json")
     actual = task_set_hash()
@@ -118,6 +134,8 @@ def load_pins():
             f"  pins:   {pins['task_set_sha256']}\n  actual: {actual}\n"
             "Update pins.json (models, settings, cost model) in the same commit as the task change."
         )
+    if pins["suite_sha256"] != suite_hash():
+        raise SystemExit("ERROR: eval fixtures or graders differ from pins.json (suite_sha256)")
     return pins
 
 
@@ -125,9 +143,10 @@ def load_pins():
 # verification
 # --------------------------------------------------------------------------- #
 def check_one(check, workdir):
-    path = Path(workdir) / check["file"]
-    if not path.exists():
-        return False, f"{check['file']}: missing"
+    root = Path(workdir).resolve()
+    path = root / check["file"]
+    if path.is_symlink() or not path.resolve().is_relative_to(root) or not path.is_file():
+        return False, f"{check['file']}: missing or not a regular workspace file"
     text = path.read_text(encoding="utf-8", errors="replace")
     kind = check["type"]
     if kind == "contains":
@@ -222,24 +241,14 @@ def run_command(task, role, model, pins, workdir):
     cmd = os.environ.get("AUTOROUTER_EVAL_CMD")
     if not cmd:
         return _adapter_error("AUTOROUTER_EVAL_CMD is not set", 0)
-    env = dict(os.environ)
-    env.update(
-        {
-            "AUTOROUTER_MODEL": model,
-            "AUTOROUTER_TASK_ID": task["id"],
-            "AUTOROUTER_WORKDIR": str(workdir),
-        }
-    )
     started = time.monotonic()
     try:
-        proc = subprocess.run(
-            cmd,
-            shell=True,
-            cwd=workdir,
-            env=env,
-            input=task["prompt"],
-            text=True,
-            capture_output=True,
+        mounts, env = isolation.adapter_settings(workdir)
+        env.update(AUTOROUTER_MODEL=model, AUTOROUTER_TASK_ID=task["id"],
+                   AUTOROUTER_WORKDIR=isolation.WORKDIR)
+        proc = isolation.run(
+            workdir, ["/bin/sh", "-c", cmd], network=True, mounts=mounts, env=env,
+            input_text=task["prompt"],
             timeout=pins["settings"]["timeout_s"],
         )
     except subprocess.TimeoutExpired:
@@ -247,6 +256,8 @@ def run_command(task, role, model, pins, workdir):
             f"adapter timed out after {pins['settings']['timeout_s']}s",
             int((time.monotonic() - started) * 1000),
         )
+    except (isolation.IsolationError, OSError, ValueError) as exc:
+        return _adapter_error(f"adapter sandbox setup failed: {exc}", 0)
     latency_ms = int((time.monotonic() - started) * 1000)
 
     if proc.returncode != 0:
@@ -266,13 +277,21 @@ def run_command(task, role, model, pins, workdir):
             f"(tokens_in={payload.get('tokens_in')!r}, tokens_out={payload.get('tokens_out')!r})",
             latency_ms,
         )
+    counters = {key: payload.get(key, 0) for key in ("latency_ms", "retries", "escalations")}
+    if any(type(n) is not int or n < 0 for n in counters.values()):
+        return _adapter_error("adapter counters must be non-negative integers", latency_ms)
+    trace = payload.get("trace", [model])
+    if not isinstance(trace, list) or not trace or not all(isinstance(x, str) for x in trace):
+        return _adapter_error("adapter trace must be a nonempty list of model ids", latency_ms)
+    if any(served != model for served in trace):
+        return _adapter_error("adapter reported a model other than the pinned model", latency_ms)
     return _ok(
         payload["tokens_in"],
         payload["tokens_out"],
-        int(payload.get("latency_ms") or latency_ms),
-        int(payload.get("retries") or 0),
-        int(payload.get("escalations") or 0),
-        payload.get("trace") or [model],
+        counters["latency_ms"] or latency_ms,
+        counters["retries"],
+        counters["escalations"],
+        trace,
     )
 
 
@@ -285,52 +304,14 @@ def execute(executor, task, role, model, pins, workdir):
 # --------------------------------------------------------------------------- #
 # behavioural tests (sandboxed -- this is the only place model-written code runs)
 # --------------------------------------------------------------------------- #
-SANDBOX_MODES = ("auto", "bwrap", "unshare", "none")
-
-
-_SANDBOX_CACHE = {}
+SANDBOX_MODES = ("auto", "bwrap", "none")
 
 
 def detect_sandbox(requested="auto"):
-    """Return the strongest available mechanism, or 'none'. Never assume one."""
-    if requested in _SANDBOX_CACHE:
-        return _SANDBOX_CACHE[requested]
-    if requested != "auto":
-        _SANDBOX_CACHE[requested] = requested
-        return requested
-    if shutil.which("bwrap"):
-        probe = subprocess.run(
-            ["bwrap", "--unshare-all", "--die-with-parent", "--ro-bind", "/", "/",
-             "--dev", "/dev", "--proc", "/proc", "/bin/true"],
-            capture_output=True,
-        )
-        if probe.returncode == 0:
-            _SANDBOX_CACHE[requested] = "bwrap"
-            return "bwrap"
-    if shutil.which("unshare"):
-        probe = subprocess.run(["unshare", "-rn", "/bin/true"], capture_output=True)
-        if probe.returncode == 0:
-            _SANDBOX_CACHE[requested] = "unshare"
-            return "unshare"
-    _SANDBOX_CACHE[requested] = "none"
-    return "none"
-
-
-def sandbox_argv(mechanism, script, workdir):
-    python = sys.executable
-    if mechanism == "bwrap":
-        return [
-            "bwrap", "--unshare-all", "--die-with-parent", "--clearenv",
-            "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
-            "--bind", str(workdir), str(workdir),
-            "--chdir", str(workdir),
-            "--setenv", "PATH", "/usr/local/bin:/usr/bin:/bin",
-            "--setenv", "HOME", str(workdir),
-            python, str(script),
-        ]
-    if mechanism == "unshare":
-        return ["unshare", "-rn", "--", python, str(script)]
-    return [python, str(script)]
+    """A network-only namespace does not protect the checkout."""
+    if requested == "none":
+        return "none"
+    return "bwrap" if requested == "bwrap" or isolation.available() else "none"
 
 
 def run_behavior(task, workdir, pins, mechanism):
@@ -346,35 +327,43 @@ def run_behavior(task, workdir, pins, mechanism):
         return {"status": "not_applicable", "reason": None, "checks": [], "passed": 0, "total": 0}
     script = EVAL / task["behavior"]
     if mechanism == "none":
-        return {"status": "skipped", "reason": "no sandbox available (bwrap/unshare)",
+        return {"status": "skipped", "reason": "no Bubblewrap sandbox available",
                 "checks": [], "passed": 0, "total": 0}
-    cmd = sandbox_argv(mechanism, script, workdir)
+    sandbox_script = f"/checks/{script.name}"
+    mounts = [(script, sandbox_script), (EVAL / "behavior/_harness.py", "/checks/_harness.py")]
     try:
-        proc = subprocess.run(
-            cmd,
-            cwd=workdir,
-            capture_output=True,
-            text=True,
+        proc = isolation.run(
+            workdir, ["/usr/bin/python3", "-I", "-B", sandbox_script],
+            mounts=mounts, readonly=True,
             timeout=pins["settings"].get("behavior_timeout_s", 60),
         )
     except subprocess.TimeoutExpired:
         return {"status": "broke", "reason": "behavioural tests timed out",
+                "checks": [], "passed": 0, "total": 0}
+    except (isolation.IsolationError, OSError) as exc:
+        return {"status": "sandbox_error", "reason": str(exc),
                 "checks": [], "passed": 0, "total": 0}
     payload = None
     try:
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
     except (ValueError, IndexError):
         payload = None
-    if payload is None:
+    checks = payload.get("checks") if isinstance(payload, dict) else None
+    valid = isinstance(checks, list) and bool(checks) and all(
+        isinstance(c, dict) and isinstance(c.get("name"), str)
+        and isinstance(c.get("detail"), str) and type(c.get("ok")) is bool
+        for c in checks
+    )
+    if valid:
+        valid = len({c["name"] for c in checks}) == len(checks)
+        valid = valid and proc.returncode == (0 if all(c["ok"] for c in checks) else 1)
+    if not valid:
         stderr = (proc.stderr or "").strip()
-        if mechanism != "none" and (
-            "bwrap:" in stderr or "unshare:" in stderr or "Operation not permitted" in stderr
-        ):
+        if stderr.startswith(("bwrap:", "unshare:")):
             return {"status": "sandbox_error", "reason": stderr.splitlines()[-1][:300],
                     "checks": [], "passed": 0, "total": 0}
-        tail = stderr.splitlines()[-1][:300] if stderr else "no output"
+        tail = stderr.splitlines()[-1][:300] if stderr else "invalid or empty test results"
         return {"status": "broke", "reason": tail, "checks": [], "passed": 0, "total": 0}
-    checks = payload.get("checks", [])
     return {
         "status": "ok",
         "reason": None,
@@ -391,7 +380,7 @@ def gate(prompt):
     """Call the real classifier and time it: routing overhead is measured, not assumed."""
     started = time.monotonic()
     proc = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "classify.py"), "--json", prompt],
+        [sys.executable, str(ROOT / "scripts" / "classify.py"), "--json", "--", prompt],
         capture_output=True,
         text=True,
         timeout=30,
@@ -525,7 +514,9 @@ def run_task(arm, task, executor, pins, keep=None, sandbox="auto"):
         outcome = "infrastructure_error"
     else:
         passed, failures, behavior = judge()
-        if behavior["status"] == "sandbox_error":
+        if behavior["status"] == "sandbox_error" or (
+            executor == "command" and behavior["status"] == "skipped"
+        ):
             adapter_error = f"sandbox failed: {behavior['reason']}"
             outcome = "infrastructure_error"
             failures = [adapter_error]
@@ -544,7 +535,12 @@ def run_task(arm, task, executor, pins, keep=None, sandbox="auto"):
                     if plan["escalation"]:
                         escalations += 1
                     passed, failures, behavior = judge()
-                    outcome = "success" if not failures else "model_failure"
+                    if behavior["status"] in ("sandbox_error", "skipped"):
+                        adapter_error = f"sandbox failed: {behavior['reason']}"
+                        failures = [adapter_error]
+                        outcome = "infrastructure_error"
+                    else:
+                        outcome = "success" if not failures else "model_failure"
             else:
                 outcome = "success" if not failures else "model_failure"
 
@@ -703,7 +699,7 @@ def build_report(records, pins, executor, arm_names=ARMS):
         and r.get("behavior", {}).get("status") in ("skipped", "broke")
     ]
     if mechanism == "none" and records:
-        reasons.append("behavioural tests skipped: no sandbox (bwrap/unshare) available")
+        reasons.append("behavioural tests skipped: no Bubblewrap sandbox available")
     elif unverified:
         reasons.append(f"{len(unverified)} task run(s) were not behaviourally verified")
     valid = not reasons
@@ -715,8 +711,8 @@ def build_report(records, pins, executor, arm_names=ARMS):
         )
     elif not valid:
         warning = (
-            "INVALID RUN: the adapter failed; results are excluded and this report is not "
-            "evidence. Fix the adapter and re-run."
+            "INVALID RUN: execution or verification was incomplete. "
+            "See the validity reasons before comparing results."
         )
     else:
         warning = "Measured run. Check eval/README.md for the protocol before comparing runs."
@@ -735,6 +731,10 @@ def build_report(records, pins, executor, arm_names=ARMS):
         "synthetic": executor == "stub",
         "valid_evidence": valid,
         "validity": {"valid": valid, "reasons": reasons},
+        "accounting": {
+            "cost": "estimated from pinned prices and cache assumptions",
+            "quota": "adapter attempts divided by estimated monthly requests; no live allowance",
+        },
         "warning": warning,
         "sandbox": {
             "mechanism": mechanism,
@@ -748,6 +748,7 @@ def build_report(records, pins, executor, arm_names=ARMS):
         },
         "pins": {
             "task_set_sha256": pins["task_set_sha256"],
+            "suite_sha256": pins["suite_sha256"],
             "pinned_on": pins["pinned_on"],
             "models": pins["models"],
             "tiers": pins["tiers"],
@@ -783,7 +784,7 @@ def render_markdown(report, arm_names=None):
                  f"({report['sandbox']['behavioral_tests_run']} run, "
                  f"{report['sandbox']['behavioral_tests_skipped']} skipped)")
     lines.append("")
-    lines.append("| arm | success | infra errors | verified | checks | cost $ | $/success | mean ms | p95 ms | retries | escalations | routing ms | max quota % |")
+    lines.append("| arm | success | infra errors | verified | checks | modeled cost $ | modeled $/success | mean ms | p95 ms | retries | escalations | routing ms | est. max quota % |")
     lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for arm in arm_names:
         a = report["arms"][arm]
@@ -843,11 +844,12 @@ def render_markdown(report, arm_names=None):
     if not any_failure:
         lines.append("No model failures in this run.")
         lines.append("")
-    lines.append("## Quota used")
+    lines.append("## Estimated quota proxy")
     lines.append("")
     for arm in arm_names:
         q = report["arms"][arm]["quota"]
-        parts = [f"`{m}` {v['requests']} req ({v['pct_of_monthly']:.3f}% of monthly)" for m, v in sorted(q.items())]
+        parts = [f"`{m}` {v['requests']} attempts ({v['pct_of_monthly']:.3f}% of estimated monthly requests)"
+                 for m, v in sorted(q.items())]
         lines.append(f"- **{arm}**: " + ("; ".join(parts) if parts else "none"))
     lines.append("")
     return "\n".join(lines)
@@ -871,6 +873,10 @@ def main():
 
     if args.executor == "command" and not os.environ.get("AUTOROUTER_EVAL_CMD"):
         raise SystemExit("ERROR: --executor command requires AUTOROUTER_EVAL_CMD to be set")
+    if args.executor == "command" and (
+        args.sandbox == "none" or not isolation.available(network=True) or not isolation.available()
+    ):
+        raise SystemExit("ERROR: a measured run requires Bubblewrap for generation and verification")
 
     pins = load_pins()
     tasks = load_tasks()
@@ -917,7 +923,7 @@ def main():
                         "infrastructure_errors", "adapter_errors", "tasks_scored"):
                 assert key in a, (arm, key)
         assert all(r["outcome"] in OUTCOMES for r in records)
-        assert "sandbox" in report and report["sandbox"]["mechanism"] in ("bwrap", "unshare", "none")
+        assert "sandbox" in report and report["sandbox"]["mechanism"] in ("bwrap", "none")
         if report["sandbox"]["mechanism"] == "none":
             assert any("sandbox" in r.lower() for r in report["validity"]["reasons"])
         else:

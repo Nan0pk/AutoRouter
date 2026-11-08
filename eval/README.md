@@ -39,7 +39,7 @@ executor name is not evidence: `--executor command` does not make a run valid.
 | Non-zero exit, timeout, no JSON on stdout | `infrastructure_error` | excluded from scoring; `valid_evidence: false`; listed under "adapter errors" |
 | Missing, zero, negative or non-integer `tokens_in`/`tokens_out` | `infrastructure_error` | same |
 | Sandbox fails to start | `infrastructure_error` | same |
-| No sandbox available (behaviour skipped) | `skipped` | scored on static checks only, but **the report is invalid** |
+| No sandbox available | live run refuses to start | stub can still exercise report plumbing with grading skipped |
 | Assertions fail after a clean run | `model_failure` | counted in the success rate; listed under "failure cases" |
 | All checks pass | `success` | counted |
 
@@ -52,19 +52,16 @@ is visible rather than flattering.
 
 Binary per task: **all static checks pass AND all behavioural checks pass**.
 
-- **Static** (`contains`, `not_contains`, `regex`, `compiles`) is a cheap pre-filter over the
-  fixture files. It is deliberately weak and is **not** sufficient on its own: a file can mention
-  `realpath` and still allow traversal.
+- **Static** checks verify syntax for edited Python modules. The shipped tasks accept
+  different local names, loops, and formatting styles.
 - **Behavioural** (`eval/behavior/<task>.py`) imports the solution and exercises it with
-  adversarial inputs. For `sec-path` that means a sibling-directory escape and an absolute path;
+  adversarial inputs. For `sec-path` that includes sibling, absolute-path and symlink escapes;
   for `sec-sqli` a `' OR '1'='1` payload that must arrive as a bound parameter; for `sec-shell`
-  an argument that must stay a single vector element; for `data-migrate` an injected failure that
-  must roll back and propagate.
+  an argument that must stay a single vector element; for `data-migrate` an injected SQLite
+  commit failure must preserve the old schema and data and propagate the error.
 
-The harness includes a regression test for exactly the gap the static checks have: a planted
-`files.py` that satisfies every static check (it mentions `realpath`, it does not contain the
-literal unsafe join) but still leaks a file through an absolute path. Static: pass. Behaviour:
-fail. If a future change makes the behavioural layer stop catching that, the test fails.
+Regression tests cover both directions. A compiling path traversal must fail. An equivalent
+null guard, dictionary comprehension, or JSON validation using a different name must pass.
 
 - `success_rate` = tasks fully solved / tasks.
 - `partial_check_rate` = checks passed / checks total (secondary; shows near-misses).
@@ -77,8 +74,8 @@ fail. If a future change makes the behavioural layer stop catching that, the tes
 |---|---|
 | Success / partial checks | harness verification after the attempt (static + behavioural) |
 | Behaviourally verified | tasks whose behavioural suite actually ran in a sandbox |
-| Cost (USD) | measured `tokens_in` / `tokens_out` × pinned prices, with the cache model from `pins.json` (cache hits billed at `cache_read_cost`, misses at `cache_write_cost`) |
-| Quota | attempts per model / that model's `req_per_month`, and the max share of any monthly allowance |
+| Modeled cost (USD) | reported tokens × pinned prices and cache assumptions. The estimate can differ from the provider bill. |
+| Estimated quota proxy | adapter attempts per model divided by its estimated monthly requests. This cannot reveal the actual remaining allowance. |
 | Latency | wall clock per attempt (executor-reported or measured), plus gate time |
 | Retries | harness-driven second attempts **plus** executor-reported retries, reported separately |
 | Escalations | a second attempt on a **higher** tier (harness) plus executor-reported escalations |
@@ -104,28 +101,31 @@ router that only works on well-labelled prompts is not useful. `debug-mutation` 
 
 ## Isolation
 
-Behavioural tests execute **model-written code**, so they run in a sandbox:
+A measured run requires Linux Bubblewrap and an offline grader. Generation mounts the disposable
+copy as `/work`. It has network access for inference and sees only system runtime files and
+operator-selected read-only mounts. The original fixtures and graders stay outside that worker.
+Verification runs in a separate network namespace with the candidate files and required tests
+mounted read-only. The grader uses the system Python and SQLite.
 
-| Mechanism | Isolation | Used when |
-|---|---|---|
-| `bwrap` (bubblewrap) | new user/net/pid/ipc/uts namespaces, read-only host root, only the workdir writable | preferred; `--sandbox auto` probes for it |
-| `unshare -rn` | network namespace only; filesystem is **not** isolated | fallback when bwrap is unavailable |
-| `none` | none — behavioural tests are skipped | never valid evidence |
+Use a trusted adapter that starts its worker inside this boundary. Attaching to a preexisting
+harness service can move tool execution outside it. The supplied OpenCode ACP adapter starts
+a private process and permits only workspace file tools.
 
-`--sandbox none` does not run behavioural tests and the report is stamped invalid. The
-`sandbox` block in the JSON/Markdown report records which mechanism was used and how many
-behavioural suites ran or were skipped.
+`AUTOROUTER_EVAL_MOUNTS` lists absolute file or directory paths as JSON. Use narrow mounts for
+adapter code, executables, and any explicitly chosen credential file. The subprocess gets a
+clean environment. `AUTOROUTER_EVAL_FORWARD` explicitly selects `AUTOROUTER_*` settings and
+`*_API_KEY` variables. Secrets belong in the local environment or credential store.
 
-**The adapter itself is not sandboxed.** It has to reach the model over the network, so the
-harness cannot enforce the `tool_policy` from `pins.json` on it — that setting is advisory to the
-adapter. Isolation here applies to the code that runs *after* the model answers.
+`--sandbox none` is available for stub plumbing only. A measured run refuses to start when
+either sandbox mode is unavailable.
 
 ## Pinned versions and settings
 
 `pins.json` pins: model ids and versions, tier→model mapping, prices and monthly allowances,
-`temperature: 0`, `max_tokens: 2048`, timeout, retry budget, sandbox policy, the cost model, and
-a **SHA-256 of `tasks.jsonl`**. `run_eval.py` refuses to run when the task set changed without
-`pins.json` being updated in the same commit — a silent task-set edit is how evals start lying.
+intended generation settings, timeout, retry budget, sandbox policy, the cost model, and
+SHA-256 fingerprints of the task descriptions and the full fixture and grading suite.
+`run_eval.py` refuses to run if those inputs drift. Model settings must be supported by
+the adapter. The OpenCode adapter pins the model and optional effort through ACP.
 
 ## Running it
 
@@ -140,7 +140,8 @@ and prints one JSON line with `tokens_in`, `tokens_out`, `latency_ms`, `retries`
 `trace`:
 
 ```bash
-export AUTOROUTER_EVAL_CMD='./my-harness-adapter'
+export AUTOROUTER_EVAL_CMD='/absolute/path/to/my-harness-adapter'
+export AUTOROUTER_EVAL_MOUNTS='["/absolute/path/to/my-harness-adapter"]'
 python3 eval/run_eval.py --executor command \
   --out eval/results/run-$(date +%F).json \
   --markdown eval/results/run-$(date +%F).md
@@ -149,6 +150,55 @@ python3 eval/run_eval.py --executor command \
 Run each arm at least 5 times per task before comparing (the harness currently records one
 sample per task; variance is a known gap, see below), and record any prompt/temperature change in
 `pins.json`.
+
+## Checkpoint handoff pilot
+
+`run_handoff.py` exercises a separate two-file task. The workhorse drafts a summary and
+tries to fix the aggregation bug. One repair receives the public reproduction and its
+diagnostic. If the blocker persists, a specialist gets a separate copy and may change only
+`aggregate.py`. After the public check passes, the workhorse finishes `summary.py`.
+Independent regression checks grade the result. The earlier checkpoint remains available.
+
+Try the offline scenario from the repository root.
+
+```bash
+run_root="$(mktemp -d)"
+python3 eval/run_handoff.py --run-dir "$run_root/pilot" --steps 2
+python3 eval/run_handoff.py --run-dir "$run_root/pilot" --resume
+```
+
+The first command parks the scripted run at `specialist`. The second should report
+`completed`. `state.json` records each phase, selected model, check result, and usage.
+The pilot refuses to resume if a checkpoint was changed or a previous turn's outcome
+is uncertain. A fresh run always uses a new directory.
+
+For live testing, use an installed OpenCode v2 with ACP model selection and end-turn usage.
+Provide a supported provider key in your local environment. This example forwards the
+OpenCode Go key by name and works with two models available on that account.
+
+```bash
+adapter="$PWD/eval/adapters/opencode_acp.py"
+export AUTOROUTER_OPENCODE="$(command -v opencode)"
+export AUTOROUTER_EVAL_CMD="$(python3 -c 'import shlex, sys; print(shlex.join(["python3", sys.argv[1]]))' "$adapter")"
+export AUTOROUTER_EVAL_MOUNTS="$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "$adapter" "$AUTOROUTER_OPENCODE")"
+export AUTOROUTER_EVAL_FORWARD='["AUTOROUTER_OPENCODE","OPENCODE_GO_API_KEY"]'
+
+live_root="$(mktemp -d)"
+python3 eval/run_handoff.py --run-dir "$live_root/pilot" --executor command \
+  --workhorse "$WORKHORSE_MODEL" --specialist "$SPECIALIST_MODEL" --steps 2
+python3 eval/run_handoff.py --run-dir "$live_root/pilot" --resume
+```
+
+Set both model variables to distinct exact `provider/model` values from your catalog.
+The optional `/variant` suffix pins effort when supported. The adapter can also import
+a selected legacy `auth.json` by explicitly mounting it and forwarding its path as
+`AUTOROUTER_OPENCODE_AUTH`. Keep the mount narrow and the main OpenCode profile separate.
+The worker uses a disposable home. It verifies the ACP model selection response and
+records turn tokens. [OpenCode ACP](https://opencode.ai/docs/cli/acp/)
+
+The live pilot can consume provider usage. If the workhorse solves the blocker, the
+specialist is skipped. A pilot proves the control flow for this scenario. The comparative
+eval, a second harness, and live quota reservation remain separate work.
 
 ## Status
 
@@ -171,7 +221,7 @@ the instrument, not the measurement.
 - **13 tasks, one sample each.** Enough to exercise the harness and expose obvious routing
   mistakes; not enough for a confidence interval. The stub's 85% is illustrative of the *shape*
   of the comparison, not of any model's ability.
-- **Static checks.** `compiles`/`contains`/`regex` cannot judge design quality. A passing patch
+- **Verification scope.** Syntax and behavioural checks cannot judge every design choice. A passing patch
   may be bad code.
 - **No tools or network.** Fixtures are tiny; real agentic work is not represented.
 - **Latency is environment-dependent.** Compare arms within one run, never across runs.

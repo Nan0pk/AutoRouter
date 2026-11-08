@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task_set": "eval/tasks.jsonl",
-  "task_set_sha256": "ecc5d54d7fe3f2b79ed52558dfb3550a9c7a268e694642ca62dba5802527f606",
+  "task_set_sha256": "a92e176e541ebfd86818c76679c49d1769c6d19a4639dec862a4f2ee5f3d128d",
   "pinned_on": "2026-10-29",
   "models": {
     "opencode-go/deepseek-v4.1-flash": {
@@ -68,9 +68,9 @@
     "max_tokens": 2048,
     "timeout_s": 600,
     "retry_budget": 1,
-    "tool_policy": "advisory to the adapter: repo-local files, no network. The harness cannot enforce it for the adapter (the adapter needs network to call the model); it enforces isolation for behavioural tests.",
-    "sandbox": "fresh copy of eval/fixtures/<task> per attempt",
-    "verification": "declarative static checks plus sandboxed behavioural tests; model output is never executed outside the sandbox",
+    "tool_policy": "Bubblewrap exposes the copied fixture and explicitly mounted adapter files. The adapter has network access for inference; the verifier has none.",
+    "sandbox": "fresh fixture per arm/task; a retry starts from that trial's current files",
+    "verification": "syntax and behaviour in an offline sandbox with read-only candidate files",
     "behavior_timeout_s": 60
   },
   "cost_model": {
@@ -101,11 +101,12 @@
     }
   },
   "sandbox": {
-    "applies_to": "behavioural tests only (they execute model-written code)",
+    "applies_to": "command generation and behavioural tests",
     "preferred": "bubblewrap",
-    "fallback": "unshare --net (network isolation, weaker filesystem isolation)",
-    "network": "unshare-all (no network namespace)",
-    "filesystem": "read-only host root, writable workdir only",
+    "fallback": null,
+    "network": "adapter network enabled; verifier network namespace isolated",
+    "filesystem": "isolated runtime mounts; only the task copy writable for generation",
     "required_for_valid_evidence": true
-  }
+  },
+  "suite_sha256": "086dd1ad1dff01b6a488c37a6ca6541f278b9a4badc21c8f69b2341b6a46235f"
 }

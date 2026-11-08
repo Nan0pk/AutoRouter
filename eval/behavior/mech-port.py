@@ -1,15 +1,17 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.getcwd())
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _harness import main  # noqa: E402
 
 
 def port_is_9090():
     with open("config.yaml") as f:
-        lines = [ln.strip() for ln in f if ln.strip().startswith("port:")]
-    assert lines == ["port: 9090"], lines
+        settings = [line.split("#", 1)[0].strip().split(":", 1) for line in f]
+    ports = [value.strip() for key, *values in settings for value in values
+             if key.strip() == "port"]
+    assert ports == ["9090"], ports
 
 
 def config_still_loads():
