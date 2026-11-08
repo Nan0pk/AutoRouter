@@ -16,15 +16,15 @@ OWNED = ("plugins/autorouter", "plugins/model-providers/autorouter-opencode",
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def guard(path):
+def guard(path, contents=False):
     if any(p.is_symlink() for p in (path, *path.parents)):
         raise ValueError("Setup refuses symlinked installation paths")
-    if path.is_dir() and any(p.is_symlink() for p in path.rglob("*")):
+    if contents and path.is_dir() and any(p.is_symlink() for p in path.rglob("*")):
         raise ValueError("Setup refuses symlinked plugin contents")
 
 
 def fingerprint(path):
-    guard(path)
+    guard(path, contents=True)
     if not path.exists():
         return None
     if path.is_file():
@@ -61,7 +61,7 @@ def locked(home):
     guard(home)
     home.mkdir(parents=True, exist_ok=True, mode=0o700)
     for name in OWNED:
-        guard(home/name)
+        guard(home/name, contents=True)
     state = home/"autorouter"; state.mkdir(mode=0o700, exist_ok=True)
     guard(state/".lock")
     with (state/".lock").open("a") as lock:
@@ -74,6 +74,7 @@ def locked(home):
 
 
 def copy_path(source, destination):
+    guard(source, contents=True)
     if not source.exists():
         return
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -84,7 +85,7 @@ def copy_path(source, destination):
 
 
 def remove(path):
-    guard(path)
+    guard(path, contents=True)
     if path.is_dir():
         shutil.rmtree(path)
     elif path.exists():

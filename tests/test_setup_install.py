@@ -92,6 +92,14 @@ class Install(unittest.TestCase):
             install(self.home, self.policy, renderer=json_renderer)
         self.assertEqual(elsewhere.read_text(), "untouched")
 
+    def test_unrelated_runtime_symlinks_do_not_block_profile_setup(self):
+        runtime = self.home/"existing-runtime"; runtime.mkdir()
+        linked = self.home/"unrelated-runtime-link"; linked.symlink_to(runtime, target_is_directory=True)
+        install(self.home, self.policy, renderer=json_renderer)
+        self.assertEqual(status(self.home)["state"], "configured_unverified")
+        undo(self.home)
+        self.assertTrue(linked.is_symlink())
+
     def test_native_yaml_preserves_unrelated_settings_and_closes_paid_fallbacks(self):
         text = "# my settings\nuser_setting: keep\nfallback_model: paid/model\nauxiliary:\n  vision:\n    provider: paid\n    model: expensive\n    fallback_chain: [paid]\nplugins:\n  enabled: [my-plugin]\n"
         try:
