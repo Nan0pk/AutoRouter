@@ -1,0 +1,102 @@
+[
+  {
+    "event": "turn",
+    "at": 1794165289.6005147,
+    "session_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "parent_session_id": "",
+    "turn_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:30cb58e9",
+    "model": "claude-haiku-5-5",
+    "state": "specialist"
+  },
+  {
+    "event": "api",
+    "at": 1794165292.7333882,
+    "session_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "parent_session_id": "",
+    "turn_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:30cb58e9",
+    "task_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "model": "claude-haiku-5-5",
+    "provider": "autorouter-opencode-go",
+    "response_model": "claude-haiku-5-5",
+    "api_call_count": 1,
+    "usage": {
+      "input_tokens": 21,
+      "output_tokens": 191,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 3078,
+      "reasoning_tokens": 0,
+      "request_count": 1,
+      "prompt_tokens": 3099,
+      "total_tokens": 3290
+    }
+  },
+  {
+    "event": "child_start",
+    "at": 1794165295.7303553,
+    "parent_session_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "child_session_id": "20261109_001455_4fa86b",
+    "parent_turn_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:30cb58e9"
+  },
+  {
+    "event": "turn",
+    "at": 1794165295.751883,
+    "session_id": "20261109_001455_4fa86b",
+    "parent_session_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "turn_id": "20261109_001455_4fa86b:sa-0-5606e522:c555e417",
+    "model": "deepseek-v4.1-flash",
+    "state": "child"
+  },
+  {
+    "event": "api",
+    "at": 1794165297.3695405,
+    "session_id": "20261109_001455_4fa86b",
+    "parent_session_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "turn_id": "20261109_001455_4fa86b:sa-0-5606e522:c555e417",
+    "task_id": "sa-0-5606e522",
+    "model": "deepseek-v4.1-flash",
+    "provider": "autorouter-opencode-go",
+    "response_model": "deepseek-v4.1-flash",
+    "api_call_count": 1,
+    "usage": {
+      "input_tokens": 529,
+      "output_tokens": 161,
+      "cache_read_tokens": 256,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 137,
+      "request_count": 1,
+      "prompt_tokens": 785,
+      "total_tokens": 946
+    }
+  },
+  {
+    "event": "child_stop",
+    "at": 1794165297.4802136,
+    "parent_session_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "child_session_id": "20261109_001455_4fa86b",
+    "child_status": "completed",
+    "parent_turn_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:30cb58e9",
+    "result_sha256": "9565a9541ab4daebd5f8e5b302e22d9fb2c0f621bdfb2b5c74dd7f443bbb60e0"
+  },
+  {
+    "event": "api",
+    "at": 1794165298.4912908,
+    "session_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "parent_session_id": "",
+    "turn_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e:30cb58e9",
+    "task_id": "local-beaee3f5b2086652983cfc3ed9e5abce187ff5eb9b7907efe3e35b99859f097e",
+    "model": "claude-haiku-5-5",
+    "provider": "autorouter-opencode-go",
+    "response_model": "claude-haiku-5-5",
+    "api_call_count": 2,
+    "usage": {
+      "input_tokens": 2,
+      "output_tokens": 30,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 3667,
+      "reasoning_tokens": 0,
+      "request_count": 1,
+      "prompt_tokens": 3669,
+      "total_tokens": 3699
+    }
+  }
+]
