@@ -147,11 +147,34 @@ python3 eval/run_eval.py --executor command \
   --markdown eval/results/run-$(date +%F).md
 ```
 
-### The OpenCode adapter
+### The OpenCode adapters
 
-`eval/adapters/opencode-adapter.py` implements that contract for the OpenCode CLI. It runs one
-non-interactive session per attempt (`opencode run --format json`), sums the `step_finish` token
-counts, counts provider retries, and prints the JSON line the harness expects.
+There are two. Use the ACP one for a measured run.
+
+**`eval/adapters/opencode_acp.py` — measured path (runs inside the isolation sandbox).** It speaks
+ACP to `opencode acp`, writes a deny-all project config, imports the credentials from
+`AUTOROUTER_OPENCODE_AUTH_EXPORT`, and reports usage and provider retries to the harness. It needs
+three mounts (the adapter, the `opencode` binary, the auth export) and two forwarded variables:
+
+```bash
+adapter="$PWD/eval/adapters/opencode_acp.py"
+export AUTOROUTER_OPENCODE="$(command -v opencode)"
+auth_export="$(mktemp)"; opencode auth export opencode --standalone > "$auth_export"
+export AUTOROUTER_OPENCODE_AUTH_EXPORT="$auth_export"
+export AUTOROUTER_EVAL_CMD="$(python3 -c 'import shlex, sys; print(shlex.join(["python3", sys.argv[1]]))' "$adapter")"
+export AUTOROUTER_EVAL_MOUNTS="$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1:]))' \
+  "$adapter" "$AUTOROUTER_OPENCODE" "$auth_export")"
+export AUTOROUTER_EVAL_FORWARD='["AUTOROUTER_OPENCODE","AUTOROUTER_OPENCODE_AUTH_EXPORT"]'
+python3 eval/run_eval.py --executor command \
+  --out eval/results/run-$(date +%F).json --markdown eval/results/run-$(date +%F).md
+```
+
+**`eval/adapters/opencode-adapter.py` — host-side path (smoke tests only).** It shells out to
+`opencode run --format json` with the neutral `eval` agent, sums `step_finish` token counts, counts
+provider retries, and prints the JSON line the harness expects. It is **not sandbox-compatible**:
+the worker's sandbox has a fixed `PATH`, an empty `$HOME` and no `~/.config/opencode` or
+`~/.local/share/opencode`, so a measured run with this adapter will fail closed with "opencode CLI
+not found". Use it for `--tasks … --arms …` smoke tests outside `--executor` isolation.
 
 A **429 / "server is overloaded" / "prefill_cap_refused"** is retried up to
 `AUTOROUTER_MAX_ATTEMPTS` (default 3) with backoff, inside `AUTOROUTER_ADAPTER_BUDGET_S`
