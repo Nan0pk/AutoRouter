@@ -27,6 +27,10 @@ any changes. The older OpenCode examples remain separate.
 4. **Free models only** — both published input/output prices must be zero, with
    catalog data at most 24 hours old. Missing prices are excluded.
 
+Any selected free model expires with its original catalog snapshot, including
+free models picked through the one-provider or individual-model choices. Rerun
+setup to refresh pricing before continuing.
+
 All modes exclude additional paid/unknown inference routes by default. An
 included subscription allowance is different from a free model. Free mode
 concerns model inference, not unrelated paid tools such as image generation.

@@ -6,7 +6,7 @@ import threading
 import time
 from pathlib import Path
 
-from .policy import MAX_CATALOG_AGE
+from .policy import free_row_valid
 
 try:
     from .classifier import classify
@@ -49,17 +49,18 @@ class Router:
             os.close(fd)
 
     def pre_turn(self, session_id="", turn_id="", model="", user_message="", parent_session_id="", **kwargs):
-        if self.policy["mode"] == "free" and time.time()-self.policy["created_at"] > MAX_CATALOG_AGE:
-            return {"action": "block", "message": "AutoRouter free-price data expired. Rerun AutoRouter setup before continuing."}
         routine = self.rows[self.policy["routine"]]
         child = bool(parent_session_id)
         manual = model not in (routine["model"], routine["id"])
+        active = [r for r in self.rows.values() if model in (r["model"], r["id"])]
+        if any(r.get("billing") == "free" and not free_row_valid(r) for r in active):
+            return {"action": "block", "message": "AutoRouter free-price data expired. Rerun AutoRouter setup before continuing."}
         text = user_message if isinstance(user_message, str) else json.dumps(user_message)
         required = not child and not manual and classify(text)["delegate"]
         with self.lock:
             if len(self.states) > 1024:
                 oldest = next(iter(self.states)); self.states.pop(oldest)
-            self.states[(session_id, turn_id)] = {"required": required, "forced": False, "parent_session_id": parent_session_id}
+            self.states[(session_id, turn_id)] = {"required": required, "dispatched": False, "parent_session_id": parent_session_id}
             self.current[session_id] = turn_id
         self.event("turn", session_id=session_id, turn_id=turn_id, model=model,
                    parent_session_id=parent_session_id, state="child" if child else "manual" if manual else "specialist" if required else "routine")
@@ -77,9 +78,8 @@ class Router:
     def llm_request(self, request, session_id="", turn_id="", **kwargs):
         with self.lock:
             state = self.state(session_id, turn_id)
-            if not state.get("required") or state.get("forced"):
+            if not state.get("required") or state.get("dispatched"):
                 return None
-            state["forced"] = True
         # Unknown/missing delegation tools fail visibly at the provider instead of
         # quietly returning an unrestricted request. Setup verifies this tool exists.
         result = dict(request)
@@ -96,8 +96,11 @@ class Router:
         if tool_name != "delegate_task":
             return None
         with self.lock:
-            required = self.state(session_id, turn_id).get("required")
-        if required and isinstance(args.get("tasks"), list):
+            state = self.state(session_id, turn_id)
+            required = state.get("required")
+            if required and isinstance(args.get("tasks"), list) and args["tasks"] and all(isinstance(t, dict) for t in args["tasks"]):
+                state["dispatched"] = True
+        if required and isinstance(args.get("tasks"), list) and args["tasks"] and all(isinstance(t, dict) for t in args["tasks"]):
             return {"args": {**args, "tasks": [{**t, "route": "specialist"} for t in args["tasks"]]},
                     "source": "autorouter", "reason": "preserve root escalation"}
         return None
@@ -106,9 +109,9 @@ class Router:
         role = task.get("route") or ("specialist" if classify(task.get("goal", ""))["delegate"] else "routine")
         if role not in ("routine", "specialist"):
             raise ValueError("Choose the routine or specialist AutoRouter route")
-        if self.policy["mode"] == "free" and time.time()-self.policy["created_at"] > MAX_CATALOG_AGE:
-            raise ValueError("Free pricing expired; rerun setup")
         row = self.rows[self.policy[role]]
+        if row.get("billing") == "free" and not free_row_valid(row):
+            raise ValueError("Free pricing expired; rerun setup")
         return {"provider": row["runtime_provider"], "model": row["model"],
                 "label": role, "fallback_providers": []}
 

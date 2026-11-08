@@ -1,13 +1,19 @@
 import json
 import subprocess
 import time
+import types
+import sys
+import tempfile
+from pathlib import Path
+from contextlib import contextmanager
 import unittest
 from unittest.mock import patch
 
 from autorouter.policy import select_models
 from autorouter.credentials import opencode_credential
-from autorouter.hermes import go_metadata
+from autorouter.hermes import go_metadata, raw_native_prices, go_allowance
 from autorouter.probe import select_usable
+from autorouter.hermes import native_discover
 
 
 def model(provider, name, billing="included", price=1, **changes):
@@ -23,6 +29,26 @@ class Selection(unittest.TestCase):
         r = go_metadata({"cost": {"text": {"input": {"price": .15}, "output": {"price": .6}}},
                          "capabilities": {"tools": {"supported": True}, "reasoning": {"supported": True}}})
         self.assertEqual(r, {"input_price": .15, "output_price": .6, "tools": True, "reasoning": True})
+
+    def test_native_catalog_missing_prices_never_become_free(self):
+        for raw in ({}, {"cost": {}}, {"cost": {"input": None, "output": None}},
+                    {"cost": {"input": False, "output": 0}}, {"cost": {"input": 0}}):
+            prices = raw_native_prices(raw)
+            row = model("native", "one", "free", **prices)
+            other = model("native", "two", "free", 0)
+            with self.subTest(raw=raw), self.assertRaises(ValueError):
+                select_models({"models": [row, other]}, "free")
+        self.assertEqual(raw_native_prices({"cost": {"input": 0, "output": 0}}),
+                         {"input_price": 0, "output_price": 0})
+
+    def test_only_documented_numeric_quota_windows_establish_allowance(self):
+        for usage in ({"daily": {}}, {"rolling": {}}, {"rolling": {"percent": None}},
+                      {"rolling": {"percent": "0"}}, {"weekly": {"percent": False}},
+                      {"monthly": {"percent": float("nan")}}, {"rolling": {"percent": -1}}):
+            with self.subTest(usage=usage):
+                self.assertIsNone(go_allowance(usage))
+        quota = go_allowance({"rolling": {"percent": 0, "resetsAt": "2099-01-01T00:00:00Z"}})
+        self.assertEqual(quota["windows"][0]["used_percent"], 0)
 
     def setUp(self):
         self.rows = [model("go", "small"), model("go", "large", price=3),
@@ -116,3 +142,43 @@ class Credentials(unittest.TestCase):
             self.assertNotIn("secret-access", str(e.exception))
         with self.assertRaises(ValueError):
             self.export([self.row(), self.row()])
+
+
+class DiscoveryEvidence(unittest.TestCase):
+    @contextmanager
+    def native_modules(self, profiles, catalog):
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory)/"catalog.json"; cache.write_text("{}")
+            info = lambda provider,name,**kw: types.SimpleNamespace(id=name, cost_input=0, cost_output=0, tool_call=True, reasoning=True)
+            mdev = types.SimpleNamespace(_get_cache_path=lambda: cache, fetch_models_dev=lambda **kw: catalog,
+                                        models_dev_id_for=lambda name: name,
+                                        list_agentic_models=lambda *a,**kw: ["one", "two"], get_model_info=info)
+            modules = {"providers": types.SimpleNamespace(list_providers=lambda: profiles),
+                       "hermes_cli": types.ModuleType("hermes_cli"),
+                       "hermes_cli.auth": types.SimpleNamespace(get_auth_status=lambda name: {"logged_in": True},
+                                                                 is_provider_explicitly_configured=lambda name: True),
+                       "agent": types.SimpleNamespace(models_dev=mdev)}
+            with patch.dict(sys.modules, modules):
+                yield
+
+    def test_native_discovery_does_not_trust_coerced_zero_prices(self):
+        profile = types.SimpleNamespace(name="native", fetch_account_usage=lambda: None)
+        with self.native_modules([profile], {"native": {"models": {"one": {}, "two": {}}}}), patch("autorouter.hermes.shutil.which", return_value=None):
+            inventory = native_discover()
+        self.assertEqual(len(inventory["models"]), 2)
+        self.assertTrue(all(row["billing"] == "unknown" and row["input_price"] is None for row in inventory["models"]))
+        with self.assertRaises(ValueError):
+            select_models(inventory, "free")
+
+    def test_go_discovery_cannot_infer_allowance_from_malformed_windows(self):
+        entry = {"cost": {"text": {"input": {"price": 1}, "output": {"price": 1}}},
+                 "capabilities": {"tools": {"supported": True}, "reasoning": {"supported": True}}}
+        credential = {"token": "dummy", "account": "test", "organization": "test"}
+        for usage in ({"daily": {}}, {"rolling": {}}, {"rolling": {"percent": "0"}}):
+            def response(url, cred):
+                return {"data": [{**entry, "id": name} for name in ("one", "two")]} if url.endswith("/models") else {"usage": usage}
+            with self.subTest(usage=usage), self.native_modules([], {}), patch("autorouter.hermes.shutil.which", return_value="/fake"), patch("autorouter.hermes.opencode_credential", return_value=credential), patch("autorouter.hermes.opencode_get", side_effect=response):
+                inventory = native_discover()
+                self.assertTrue(all(row["billing"] == "unknown" for row in inventory["models"]))
+                with self.assertRaises(ValueError):
+                    select_models(inventory, "subscriptions")

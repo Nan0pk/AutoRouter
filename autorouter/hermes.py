@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 from .credentials import GO_URL, opencode_credential, opencode_get
+from .policy import price
 
 
 def runtime():
@@ -62,6 +63,34 @@ def go_metadata(entry):
             "reasoning": (capabilities.get("reasoning") or {}).get("supported")}
 
 
+def raw_native_prices(entry):
+    costs = entry.get("cost") if isinstance(entry, dict) else None
+    costs = costs if isinstance(costs, dict) else {}
+    return {"input_price": costs.get("input") if price(costs.get("input")) else None,
+            "output_price": costs.get("output") if price(costs.get("output")) else None}
+
+
+def go_allowance(usage):
+    from datetime import datetime
+    if not isinstance(usage, dict):
+        return None
+    windows = []
+    for name in ("rolling", "weekly", "monthly"):
+        if name not in usage:
+            continue
+        value = usage[name]
+        if not isinstance(value, dict) or not price(value.get("percent")):
+            return None
+        try:
+            reset = datetime.fromisoformat(value["resetsAt"].replace("Z", "+00:00"))
+            if reset.tzinfo is None:
+                return None
+        except (KeyError, TypeError, AttributeError, ValueError):
+            return None
+        windows.append({"name": name, "used_percent": value["percent"], "reset_at": value["resetsAt"]})
+    return {"windows": windows, "source": "https://opencode.ai/zen/go/v1/usage", "fetched_at": time.time()} if windows else None
+
+
 def native_discover():
     from providers import list_providers
     from hermes_cli.auth import get_auth_status, is_provider_explicitly_configured
@@ -72,6 +101,7 @@ def native_discover():
             models_dev.fetch_models_dev(force_refresh=True)
     except Exception:
         pass  # retain the real stale timestamp; free selection will reject it
+    catalog = models_dev.fetch_models_dev(allow_network=True)
     for profile in list_providers():
         if profile.name.startswith("autorouter-"):
             continue
@@ -97,10 +127,13 @@ def native_discover():
                     fetched = models_dev._get_cache_path().stat().st_mtime
                 except OSError:
                     fetched = 0
-                free = info.cost_input == 0 and info.cost_output == 0
+                catalog_provider = models_dev.models_dev_id_for(profile.name) or profile.name
+                raw = catalog.get(catalog_provider, {}).get("models", {}).get(info.id, {})
+                prices = raw_native_prices(raw)
+                free = all(price(prices[k]) and prices[k] == 0 for k in prices)
                 rows.append({"id": f"{profile.name}/{name}", "provider": profile.name, "model": name,
                              "runtime_provider": profile.name, "billing": "free" if free else "unknown",
-                             "input_price": info.cost_input, "output_price": info.cost_output,
+                             **prices,
                              "tools": info.tool_call, "reasoning": info.reasoning,
                              "quota": quota, "source": "https://models.dev/api.json", "fetched_at": fetched})
         except Exception:
@@ -113,9 +146,7 @@ def native_discover():
             quota = None
             try:
                 usage = opencode_get("https://opencode.ai/zen/go/v1/usage", credential)["usage"]
-                quota = {"windows": [{"name": key, "used_percent": value.get("percent"),
-                                       "reset_at": value.get("resetsAt")} for key,value in usage.items()],
-                         "source": "https://opencode.ai/zen/go/v1/usage", "fetched_at": time.time()}
+                quota = go_allowance(usage)
             except Exception:
                 pass
             billing = "included" if quota and quota["windows"] else "unknown"

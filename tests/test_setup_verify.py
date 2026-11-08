@@ -1,7 +1,15 @@
 import hashlib
 import unittest
+import tempfile
+import json
+import subprocess
+import types
+from pathlib import Path
+from unittest.mock import patch
 
-from autorouter.verify import evaluate_handoff
+from autorouter.verify import evaluate_handoff, verify_install
+from autorouter.install import install, save, fingerprint, status
+from test_setup_install import json_renderer
 from autorouter.policy import select_models
 from test_setup_policy import model
 
@@ -32,3 +40,30 @@ class Verification(unittest.TestCase):
         for events,usage,output in cases:
             with self.subTest(events=events, output=output), self.assertRaises(ValueError):
                 evaluate_handoff(self.policy, events, usage, output)
+
+    def test_failed_reverification_invalidates_old_success(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            install(home, self.policy, renderer=json_renderer)
+            report = home/"autorouter/verification.json"; save(report, {"handoff_verified": True})
+            manifest = home/"autorouter/install.json"; data = json.loads(manifest.read_text())
+            data["verification_sha256"] = fingerprint(report); save(manifest, data)
+            self.assertEqual(status(home)["state"], "verified")
+            with patch("autorouter.verify.worker", side_effect=ValueError("expired login")), self.assertRaises(ValueError):
+                verify_install(home, live=True)
+            self.assertEqual(status(home)["state"], "configured_unverified")
+
+    def test_success_cannot_be_attached_to_a_changed_generation(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d); install(home, self.policy, renderer=json_renderer)
+            def run(args, **kwargs):
+                Path(args[-1]).write_text(json.dumps(self.usage))
+                (home/"autorouter/events.jsonl").write_text("".join(json.dumps(e)+"\n" for e in self.events))
+                manifest = home/"autorouter/install.json"; data = json.loads(manifest.read_text())
+                data["hashes"]["config.yaml"] = "new-generation"; save(manifest, data)
+                return subprocess.CompletedProcess(args, 0, self.output, "")
+            check = {"loaded": True, "backends": [{"name": "autorouter", "available": True}]}
+            with patch("autorouter.verify.worker", return_value=check), patch("autorouter.verify.runtime", return_value=(Path("/source"), Path("/python"))), patch("autorouter.verify.uuid.uuid4", return_value=types.SimpleNamespace(hex="test")), patch("autorouter.verify.subprocess.run", side_effect=run):
+                with self.assertRaisesRegex(ValueError, "changed during verification"):
+                    verify_install(home, live=True)
+            self.assertFalse((home/"autorouter/verification.json").exists())

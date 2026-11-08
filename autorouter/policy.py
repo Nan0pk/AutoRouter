@@ -10,6 +10,15 @@ def price(value):
     return type(value) in (int, float) and math.isfinite(value) and value >= 0
 
 
+def free_row_valid(row, now=None):
+    now = time.time() if now is None else now
+    fetched = row.get("fetched_at")
+    return (row.get("billing") == "free" and bool(row.get("source"))
+            and type(fetched) in (int, float) and math.isfinite(fetched)
+            and 0 <= now-fetched <= MAX_CATALOG_AGE
+            and all(price(row.get(k)) and row[k] == 0 for k in ("input_price", "output_price")))
+
+
 def depleted(row):
     return any(type(w.get("used_percent")) in (int, float) and w["used_percent"] >= 100
                for w in (row.get("quota") or {}).get("windows", []))
@@ -34,8 +43,6 @@ def select_models(inventory, mode, providers=(), models=(), confirmed_allowances
         if mode == "models" and identifier not in models:
             continue
         reason = None
-        fetched = row.get("fetched_at")
-        fresh = type(fetched) in (int, float) and math.isfinite(fetched) and 0 <= now-fetched <= MAX_CATALOG_AGE
         if row.get("harness_supported") is False:
             reason = row.get("compatibility_reason", "model unavailable in this harness")
         elif row.get("tools") is not True:
@@ -43,8 +50,7 @@ def select_models(inventory, mode, providers=(), models=(), confirmed_allowances
         elif depleted(row):
             reason = "reported allowance exhausted"
         elif mode == "free" or row.get("billing") == "free":
-            if not (fresh and row.get("source") and row.get("billing") == "free" and
-                    all(price(row.get(k)) and row[k] == 0 for k in ("input_price", "output_price"))):
+            if not free_row_valid(row, now):
                 reason = "fresh verified zero input/output prices required"
             elif mode == "subscriptions":
                 reason = "this mode selects included subscription allowances"

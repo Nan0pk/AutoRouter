@@ -48,9 +48,24 @@ class PluginRouting(unittest.TestCase):
         self.assertIsNone(self.router.llm_request(request={"tools": self.tools}, session_id="two", turn_id="turn"))
         first = self.router.llm_request(request={"tools": self.tools}, session_id="one", turn_id="turn")
         self.assertIsNotNone(first)
+        self.assertIsNotNone(self.router.llm_request(request={"tools": self.tools}, session_id="one", turn_id="turn"))
+        self.router.tool_request("delegate_task", {"tasks": [{"goal": "work"}]}, session_id="one", turn_id="turn")
         self.assertIsNone(self.router.llm_request(request={"tools": self.tools}, session_id="one", turn_id="turn"))
         self.router.pre_turn(session_id="one", turn_id="next", model="small", user_message="hello")
         self.assertIsNone(self.router.llm_request(request={"tools": self.tools}, session_id="one", turn_id="next"))
+
+    def test_free_rows_expire_from_original_catalog_time_in_every_mode(self):
+        for mode in ("provider", "models", "free"):
+            rows = [model("free", "one", "free", 0), model("free", "two", "free", 0)]
+            kwargs = {"providers": ["free"]} if mode == "provider" else {"models": [r["id"] for r in rows]} if mode == "models" else {}
+            policy = select_models({"models": rows}, mode, **kwargs)
+            for row in policy["models"]:
+                row["fetched_at"] = 0
+            router = Router(policy)
+            result = router.pre_turn(session_id="s", turn_id="t", model="one", user_message="hi")
+            self.assertEqual(result["action"], "block")
+            with self.assertRaises(ValueError):
+                router.route_task({"route": "specialist"})
 
     def test_backend_rejects_unknown_routes_and_never_exposes_arbitrary_models(self):
         with self.assertRaises(ValueError):

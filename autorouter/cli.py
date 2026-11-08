@@ -9,6 +9,8 @@ from .policy import MODES, select_models
 
 
 def choose(prompt, values, reader=input):
+    if not values:
+        raise ValueError("No connected providers or eligible choices found; sign in with the harness first")
     for number, value in enumerate(values, 1):
         print(f"  {number}. {value}")
     answer = reader(prompt).strip()

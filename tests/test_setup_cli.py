@@ -17,6 +17,8 @@ class SetupCommand(unittest.TestCase):
         values = ["subscriptions", "provider", "models", "free"]
         for number,expected in enumerate(values, 1):
             self.assertEqual(choose("Choose: ", values, lambda _: str(number)), expected)
+        with self.assertRaisesRegex(ValueError, "No connected"):
+            choose("Choose: ", [], lambda _: "")
 
     def run_cli(self, *args, input_text=None):
         return subprocess.run([sys.executable, str(ROOT/"scripts/setup_autorouter.py"), *args],

@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 
 from .hermes import runtime, worker
-from .install import fingerprint, save, status
+from .install import OWNED, fingerprint, locked, save, status
 
 
 def tokens(usage):
@@ -53,7 +53,16 @@ def verify_install(home, live=False):
     state = status(home)
     if state["state"] not in ("configured_unverified", "verified"):
         raise ValueError("AutoRouter is absent, changed, or needs recovery; run status/setup first")
-    policy = json.loads((home/"autorouter/policy.json").read_text())
+    with locked(home):
+        if status(home)["state"] not in ("configured_unverified", "verified"):
+            raise ValueError("Installation changed before verification")
+        manifest_path = home/"autorouter/install.json"
+        manifest = json.loads(manifest_path.read_text())
+        baseline = dict(manifest["hashes"])
+        policy = json.loads((home/"autorouter/policy.json").read_text())
+        if live:
+            manifest.pop("verification_sha256", None)
+            save(manifest_path, manifest)
     check = worker("plugin_check", home=home)
     if not check["loaded"] or {"name": "autorouter", "available": True} not in check["backends"]:
         raise ValueError("Hermes did not load the installed AutoRouter backend")
@@ -90,10 +99,12 @@ def verify_install(home, live=False):
             report = evaluate_handoff(policy, events, usage, process.stdout)
     except subprocess.TimeoutExpired:
         raise ValueError("Hermes live handoff check timed out; installation remains unverified") from None
-    report_path = home/"autorouter/verification.json"
-    save(report_path, report)
-    manifest_path = home/"autorouter/install.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["verification_sha256"] = fingerprint(report_path)
-    save(manifest_path, manifest)
+    with locked(home):
+        manifest = json.loads(manifest_path.read_text())
+        if manifest["hashes"] != baseline or any(fingerprint(home/p) != baseline[p] for p in OWNED):
+            raise ValueError("Installation changed during verification; check the new generation separately")
+        report_path = home/"autorouter/verification.json"
+        save(report_path, report)
+        manifest["verification_sha256"] = fingerprint(report_path)
+        save(manifest_path, manifest)
     return report
