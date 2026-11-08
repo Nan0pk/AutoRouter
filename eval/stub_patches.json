@@ -100,7 +100,7 @@
   },
   "sec-path": {
     "files": {
-      "files.py": "import os\n\n\ndef read_file(base, name):\n    path = os.path.join(base, os.path.basename(name))\n    with open(path) as f:\n        return f.read()\n"
+      "files.py": "from pathlib import Path\n\n\ndef read_file(base, name):\n    root = Path(base).resolve()\n    target = (root / name).resolve()\n    if not target.is_relative_to(root):\n        raise ValueError(\"path escapes the base directory\")\n    return target.read_text()\n"
     },
     "solvable_by": [
       "strong"

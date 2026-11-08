@@ -13,10 +13,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "eval"))
 
 import run_eval  # noqa: E402
+import isolation  # noqa: E402
 
 TASK = {"id": "probe", "category": "mechanical", "prompt": "do the thing", "checks": []}
 
 
+@unittest.skipUnless(isolation.available(network=True), "Bubblewrap is unavailable")
 class AdapterResultValidation(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -101,6 +103,7 @@ class OutcomeAccounting(unittest.TestCase):
         self.assertEqual(rec["retries"], 2)
         self.assertEqual(rec["attempts"][0]["reported_retries"], 2)
 
+    @unittest.skipUnless(isolation.available(), "offline Bubblewrap grader is unavailable")
     def test_retry_baseline_retries_the_same_model_without_escalating(self):
         run_eval.execute = self._fail_then_pass
         rec = run_eval.run_task("fixed_workhorse_retry", self.task, "command", self.pins)
@@ -192,8 +195,7 @@ class BehaviouralVerification(unittest.TestCase):
         import shutil
 
         shutil.copytree(run_eval.EVAL / self.task["fixture"], workdir)
-        # A plausible-looking "fix": mentions realpath, never joins the raw
-        # name, and still lets an absolute path escape the base directory.
+        # A compiling implementation still lets an absolute path escape.
         (workdir / "files.py").write_text(
             "import os\n\n\ndef read_file(base, name):\n"
             "    path = os.path.realpath(os.path.join(base, name.replace('../', '')))\n"
