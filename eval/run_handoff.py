@@ -97,7 +97,7 @@ def resume(directory, args, pins):
         raise ValueError("the previous attempt was interrupted during dispatch or grading; "
                          "its outcome is uncertain. Start a new trial to avoid replay.")
     if state["phase"] not in TERMINAL and state["adapter_sha256"] != adapter_fingerprint(state["executor"]):
-        raise ValueError("adapter command changed since the checkpoint")
+        raise ValueError("adapter command or profile changed since the checkpoint")
     return state
 
 
@@ -107,6 +107,9 @@ def adapter_fingerprint(executor):
     command = os.environ.get("AUTOROUTER_EVAL_CMD")
     if not command or not isolation.available(network=True):
         raise ValueError("command pilot requires AUTOROUTER_EVAL_CMD and Bubblewrap")
+    profile = os.environ.get("AUTOROUTER_EVAL_PROFILE")
+    if profile:
+        command = json.dumps([command, profile])
     return hashlib.sha256(command.encode()).hexdigest()
 
 
