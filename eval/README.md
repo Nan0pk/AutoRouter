@@ -204,7 +204,41 @@ records turn tokens. [OpenCode ACP](https://opencode.ai/docs/cli/acp/)
 
 The live pilot can consume provider usage. If the workhorse solves the blocker, the
 specialist is skipped. A pilot proves the control flow for this scenario. The comparative
-eval, a second harness, and live quota reservation remain separate work.
+eval and live quota reservation remain separate work.
+
+### Repeat the pilot in Hermes
+
+The Hermes runner uses the same fixtures, checkpoints, and independent grader. It selects
+the active API key from an OpenCode v2 integration export in memory and passes that key
+to a disposable Hermes profile. It accepts only OpenCode Go model IDs and checks the
+model and provider in Hermes' usage report. OAuth and other credential types are rejected.
+
+On the Linux host with the saved OpenCode account, use Hermes v0.23.0 or later and Bubblewrap.
+From the repository root:
+
+```bash
+run_dir="$(mktemp -d)/hermes-go"
+python3 eval/run_hermes_handoff.py -- --run-dir "$run_dir" --steps 2
+python3 eval/run_hermes_handoff.py -- --run-dir "$run_dir" --resume
+```
+
+The wrapper defaults to OpenCode's `opencode` integration. If the key is stored under
+`opencode-go`, pass `--integration opencode-go` before the separator. The workhorse and
+specialist default to the same pinned models as the OpenCode pilot. Use `--workhorse`
+and `--specialist` after the separator to select the exact same Go models as a prior run.
+Both must be available to that account. Hermes uses its default effort for each model.
+
+The worker starts with a fresh profile, a file-only toolset, and no configured fallbacks.
+A resume must select the same account entry. The wrapper does not save the exported
+key or print it in the report. For a custom Hermes installation, provide `--hermes`
+and any additional trusted, read-only `--runtime-mount` paths before the separator.
+Mount the executable and its dependencies separately from credentials and user profiles.
+
+Compare the verified result and phase sequence in the two `state.json` files. Hermes reports
+turn tokens, including auxiliary tokens when its report supplies them. Its usage file lacks
+retry episode counts. The two harnesses can take different routes if a workhorse solves the
+blocker earlier. Both use the same Go account's allowance.
+[OpenCode's Hermes integration](https://opencode.ai/docs/console/harnesses/hermes/)
 
 ## Status
 
