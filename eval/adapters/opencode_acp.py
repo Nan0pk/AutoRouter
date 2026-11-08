@@ -14,6 +14,7 @@ class ACP:
         self.process = process
         self.request_id = 0
         self.retries = 0
+        self.pending_retry = None
 
     def send(self, message):
         self.process.stdin.write(json.dumps({"jsonrpc": "2.0", **message}) + "\n")
@@ -32,6 +33,17 @@ class ACP:
                 update = message["params"]["update"]
                 if update.get("sessionUpdate") == "retry":
                     self.retries += 1
+                elif update.get("sessionUpdate") == "session_info_update":
+                    meta = update.get("_meta") or {}
+                    if "opencode/retry" in meta:
+                        retry = meta["opencode/retry"]
+                        if retry is None:
+                            self.pending_retry = None
+                        elif isinstance(retry, dict):
+                            attempt = retry.get("attempt")
+                            if type(attempt) is int and attempt > 0 and attempt != self.pending_retry:
+                                self.retries += 1
+                                self.pending_retry = attempt
             elif "method" in message and "id" in message:
                 if message["method"] == "session/request_permission":
                     self.send({"id": message["id"], "result": {"outcome": {"outcome": "cancelled"}}})
@@ -56,14 +68,34 @@ def configure(home, workdir):
             {"action": "*", "resource": "*", "effect": "deny"},
             *({"action": action, "resource": "*", "effect": "allow"}
               for action in ("read", "edit", "glob", "grep")),
+            {"action": "provider.use", "resource": os.environ["AUTOROUTER_MODEL"].split("/")[0],
+             "effect": "allow"},
         ],
     }))
     auth = os.environ.get("AUTOROUTER_OPENCODE_AUTH")
-    if auth:
+    if auth and not os.environ.get("AUTOROUTER_OPENCODE_AUTH_EXPORT"):
         destination = home / ".local/share/opencode/auth.json"
         destination.parent.mkdir(parents=True)
         shutil.copyfile(auth, destination)
         destination.chmod(0o600)
+
+
+def import_auth(binary, env):
+    export = os.environ.get("AUTOROUTER_OPENCODE_AUTH_EXPORT")
+    if export and os.environ.get("AUTOROUTER_OPENCODE_AUTH"):
+        raise RuntimeError("select only one credential source: legacy auth or v2 export")
+    if not export:
+        return
+    try:
+        with open(export, encoding="utf-8") as credentials:
+            result = subprocess.run(
+                [binary, "auth", "import", "--standalone"], stdin=credentials, env=env,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30,
+            )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("selected OpenCode credential import timed out") from None
+    if result.returncode:
+        raise RuntimeError("selected OpenCode credential import failed")
 
 
 def prompt_turn(client, model, workdir, prompt):
@@ -102,6 +134,7 @@ def main():
         env = {key: val for key, val in os.environ.items()
                if key in ("PATH", "LC_ALL") or key.endswith("_API_KEY")}
         env["HOME"] = str(home)
+        import_auth(binary, env)
         with subprocess.Popen(
             [binary, "acp"], cwd=workdir, env=env, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
