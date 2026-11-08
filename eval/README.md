@@ -173,15 +173,20 @@ The pilot refuses to resume if a checkpoint was changed or a previous turn's out
 is uncertain. A fresh run always uses a new directory.
 
 For live testing, use an installed OpenCode v2 with ACP model selection and end-turn usage.
-Provide a supported provider key in your local environment. This example forwards the
-OpenCode Go key by name and works with two models available on that account.
+This example exports only the selected OpenCode integration and imports it into each
+disposable worker home. The export contains credentials: keep it local and remove it
+after the run. Both pinned models must be available on that account.
 
 ```bash
 adapter="$PWD/eval/adapters/opencode_acp.py"
 export AUTOROUTER_OPENCODE="$(command -v opencode)"
+auth_export="$(mktemp)"
+trap 'rm -f "$auth_export"' EXIT
+opencode auth export opencode --standalone > "$auth_export"
+export AUTOROUTER_OPENCODE_AUTH_EXPORT="$auth_export"
 export AUTOROUTER_EVAL_CMD="$(python3 -c 'import shlex, sys; print(shlex.join(["python3", sys.argv[1]]))' "$adapter")"
-export AUTOROUTER_EVAL_MOUNTS="$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "$adapter" "$AUTOROUTER_OPENCODE")"
-export AUTOROUTER_EVAL_FORWARD='["AUTOROUTER_OPENCODE","OPENCODE_GO_API_KEY"]'
+export AUTOROUTER_EVAL_MOUNTS="$(python3 -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "$adapter" "$AUTOROUTER_OPENCODE" "$auth_export")"
+export AUTOROUTER_EVAL_FORWARD='["AUTOROUTER_OPENCODE","AUTOROUTER_OPENCODE_AUTH_EXPORT"]'
 
 live_root="$(mktemp -d)"
 python3 eval/run_handoff.py --run-dir "$live_root/pilot" --executor command \
@@ -190,9 +195,10 @@ python3 eval/run_handoff.py --run-dir "$live_root/pilot" --resume
 ```
 
 Set both model variables to distinct exact `provider/model` values from your catalog.
-The optional `/variant` suffix pins effort when supported. The adapter can also import
-a selected legacy `auth.json` by explicitly mounting it and forwarding its path as
-`AUTOROUTER_OPENCODE_AUTH`. Keep the mount narrow and the main OpenCode profile separate.
+The optional `/variant` suffix pins effort when supported. Other providers can use supported
+`*_API_KEY` variables, explicitly selected in `AUTOROUTER_EVAL_FORWARD`. For a compatible legacy
+profile, mount a selected `auth.json` and forward its path as `AUTOROUTER_OPENCODE_AUTH` instead
+of `AUTOROUTER_OPENCODE_AUTH_EXPORT`; the two sources cannot be combined. Keep mounts narrow.
 The worker uses a disposable home. It verifies the ACP model selection response and
 records turn tokens. [OpenCode ACP](https://opencode.ai/docs/cli/acp/)
 
