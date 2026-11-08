@@ -47,6 +47,7 @@ class Selection(unittest.TestCase):
                       model("bad", "missing", "free", None), model("bad", "nan", "free", float("nan")),
                       model("bad", "exhausted", quota={"windows": [{"used_percent": 100}]}),
                       model("bad", "notools", tools=False)]
+        self.rows += [model("bad", "harness", harness_supported=False)]
         for mode in ("subscriptions", "free"):
             p = select_models(self.inventory, mode)
             self.assertFalse(any(r["provider"] in ("bad", "paid", "unknown") for r in p["models"]))

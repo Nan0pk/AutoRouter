@@ -36,7 +36,9 @@ def select_models(inventory, mode, providers=(), models=(), confirmed_allowances
         reason = None
         fetched = row.get("fetched_at")
         fresh = type(fetched) in (int, float) and math.isfinite(fetched) and 0 <= now-fetched <= MAX_CATALOG_AGE
-        if row.get("tools") is not True:
+        if row.get("harness_supported") is False:
+            reason = row.get("compatibility_reason", "model unavailable in this harness")
+        elif row.get("tools") is not True:
             reason = "tool support unknown or unavailable"
         elif depleted(row):
             reason = "reported allowance exhausted"

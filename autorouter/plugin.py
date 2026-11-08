@@ -19,6 +19,8 @@ def active_home():
 
 
 def read_policy():
+    if (active_home()/"autorouter/transaction.json").exists():
+        raise ValueError("AutoRouter setup is not finished; complete recovery before starting a new session")
     return json.loads((active_home()/"autorouter/policy.json").read_text())
 
 
