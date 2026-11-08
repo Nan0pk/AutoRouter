@@ -20,6 +20,13 @@ The point is not a specific config — it's a **reproducible process** you can r
 
 ## Core ideas (the short version)
 
+**Want a working setup first?** Run `python3 scripts/setup_autorouter.py setup hermes`,
+or ask an assistant in this repo to **“set up AutoRouter in Hermes.”** Choose
+existing allowances, one provider, exact models, or published zero-price models.
+Setup installs native routing and checks a real two-model handoff. See
+[SETUP.md](SETUP.md) for preview, status, verification, undo and limits. Hermes
+is the first target of this command; other harness names are unsupported.
+
 - **Capability × quota is the real objective.** A model is "best" only relative to how much of
   it you can actually use. The most capable models usually have the *smallest* allowances.
 - **Tiers make routing legible.** Collapse dozens of models into `T0`–`T5` bands; route by task
@@ -40,11 +47,12 @@ The point is not a specific config — it's a **reproducible process** you can r
 
 ## Implementation status
 
-This is a **methodology + toolkit**, not a turnkey runtime router. Here is what runs today versus
-what you must wire into a harness.
+This is a **methodology + toolkit** with a native Hermes setup command. The
+generic builder and older harness examples retain their own integration limits.
 
 | Capability | Status | Where |
 |---|---|---|
+| Interactive Hermes setup + native delegation | **Implemented** — four model-source choices, existing logins, backup/undo and explicit live handoff verification | `scripts/setup_autorouter.py`, `SETUP.md` |
 | Quota-aware tiers + capability-ceiling descriptions | **Implemented** (config) | `examples/`, `schema/` |
 | Offline scoring → tiers → config builder | **Implemented** | `scripts/score_models.py`, `build_router.py` |
 | Config validation | **Implemented** — custom checks; `--schema` for real JSON Schema | `scripts/validate_router.py` |

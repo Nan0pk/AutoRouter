@@ -30,7 +30,9 @@ def register_provider_bridge():
     if expected["organization"]:
         headers["x-opencode-org-id"] = expected["organization"]
     profile = ExistingOpenCodeLogin(name="autorouter-opencode-go", base_url=GO_URL,
-                                   env_vars=(), ambient_credentials=True, default_headers=headers,
+                                   # Hermes needs a declared variable to register an API-key provider.
+                                   # The resolver above never reads it or falls back to it.
+                                   env_vars=("AUTOROUTER_OPENCODE_LOGIN",), ambient_credentials=True, default_headers=headers,
                                    default_aux_model=next(r["model"] for r in rows if r["id"] == policy["routine"])
                                    if policy["routine"] in {r["id"] for r in rows} else rows[0]["model"])
     register_provider(profile)

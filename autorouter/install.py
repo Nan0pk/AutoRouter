@@ -31,6 +31,8 @@ def fingerprint(path):
         return hashlib.sha256(path.read_bytes()).hexdigest()
     h = hashlib.sha256()
     for p in sorted(path.rglob("*")):
+        if "__pycache__" in p.relative_to(path).parts or p.suffix == ".pyc":
+            continue  # ordinary Python execution must not make undo think source was edited
         h.update((str(p.relative_to(path)) + ("/" if p.is_dir() else "\0")).encode())
         if p.is_file():
             h.update(p.read_bytes())
@@ -211,5 +213,21 @@ def undo(home):
             raise ValueError("Invalid AutoRouter installation manifest")
         if any(fingerprint(home/p) != manifest["hashes"][p] for p in OWNED):
             raise ValueError("Installed files changed; undo refuses to overwrite later user edits")
-        restore(home, backup_dir(state, manifest["backup"]), manifest["before"])
+        target = backup_dir(state, manifest["backup"])
+        # Preflight the complete original backup before creating an undo journal.
+        if set(manifest["before"]) != set(OWNED) or any(fingerprint(target/"previous"/p) != manifest["before"][p] for p in OWNED):
+            raise ValueError("AutoRouter backup changed; restore manually")
+        name = uuid.uuid4().hex; rollback = backup_dir(state, name)
+        rollback.mkdir(parents=True, mode=0o700)
+        for p in OWNED:
+            copy_path(home/p, rollback/"previous"/p)
+        save(rollback/"previous-install.json", manifest)
+        save(state/"transaction.json", {"backup": name, "before": manifest["hashes"], "after": manifest["before"]})
+        try:
+            restore(home, target, manifest["before"])
+            (state/"transaction.json").unlink()
+        except BaseException:
+            restore(home, rollback, manifest["hashes"])
+            (state/"transaction.json").unlink()
+            raise
     return {"state": "restored", "home": str(home)}

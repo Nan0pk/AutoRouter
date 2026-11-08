@@ -1,5 +1,6 @@
 """Native Hermes routing. Core retains all agent execution and tool permissions."""
 import json
+import hashlib
 import os
 import threading
 import time
@@ -38,6 +39,7 @@ class Router:
             return
         allowed = ("session_id", "parent_session_id", "turn_id", "task_id", "model", "provider",
                    "response_model", "api_call_count", "subagent_id", "state", "reason", "usage")
+        allowed += ("child_session_id", "child_status", "parent_turn_id", "result_sha256")
         event = {"event": kind, "at": time.time(), **{k: kwargs[k] for k in allowed if k in kwargs}}
         data = (json.dumps(event, default=str)+"\n").encode()
         fd = os.open(self.log, os.O_WRONLY|os.O_APPEND|os.O_CREAT|os.O_NOFOLLOW, 0o600)
@@ -114,6 +116,10 @@ class Router:
         state = self.state(kwargs.get("session_id", ""), kwargs.get("turn_id", ""))
         self.event("api", **{**kwargs, "parent_session_id": state.get("parent_session_id", "")})
 
+    def child_stop(self, child_summary=None, **kwargs):
+        digest = hashlib.sha256(str(child_summary or "").strip().encode()).hexdigest()
+        self.event("child_stop", result_sha256=digest, **kwargs)
+
 
 def register(ctx):
     from agent.delegation_provider import DelegationProvider, DelegationRouteError
@@ -145,4 +151,4 @@ def register(ctx):
     ctx.register_middleware("tool_request", router.tool_request)
     ctx.register_hook("post_api_request", router.api_event)
     ctx.register_hook("subagent_start", lambda **kw: router.event("child_start", **kw))
-    ctx.register_hook("subagent_stop", lambda **kw: router.event("child_stop", **kw))
+    ctx.register_hook("subagent_stop", router.child_stop)

@@ -9,7 +9,7 @@ if grep -rInE "github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{30,}|x-access-token:
 fi
 
 echo "==> byte-compile scripts"
-python3 -m py_compile scripts/*.py eval/*.py eval/adapters/*.py
+python3 -m py_compile scripts/*.py eval/*.py eval/adapters/*.py autorouter/*.py
 
 echo "==> unit tests (gate calibration + docs claims)"
 python3 -m unittest discover -s tests -p "test_*.py"

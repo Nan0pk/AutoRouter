@@ -70,6 +70,9 @@ def main(argv=None):
                 print(f"  {row['id']} — {row['billing']}")
             models = [v.strip() for v in input("Choose exact model IDs, separated by commas: ").split(",") if v.strip()]
         policy = select_models(inventory, mode, providers, models, args.confirm_allowance)
+        if not args.dry_run and not args.offline:
+            from .probe import select_usable
+            policy = select_usable(inventory, mode, providers, models, args.confirm_allowance)
         print(f"Routine: {policy['routine']}\nSpecialist: {policy['specialist']}")
         for reason in policy["reasons"]:
             print(reason)

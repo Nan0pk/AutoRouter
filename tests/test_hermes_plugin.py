@@ -90,4 +90,5 @@ class PluginRouting(unittest.TestCase):
             result = worker("plugin_check", home=home)
             self.assertTrue(result["loaded"])
             self.assertTrue(result["go_bridge"])
+            self.assertTrue(result["bridge_known"])
             self.assertIn({"name": "autorouter", "available": True}, result["backends"])

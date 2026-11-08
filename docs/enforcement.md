@@ -7,6 +7,20 @@ it — `tests/test_docs_claims.py` fails the build when they do not.
 
 ## Status
 
+The [Hermes setup command](../SETUP.md) installs a native delegation backend
+restricted to the routine/specialist role routes, plus root-turn instructions
+and request middleware. Complex requests require delegation; child turns are
+excluded. The backend refuses unknown roles and supplies no fallback providers.
+Setup normalizes auxiliary/fallback settings, with private backups for undo.
+Live verification observes actual API models, usage and parent/child result
+return; a skipped specialist cannot pass.
+
+Hermes hooks/middleware can fail open on unexpected errors, so this is not a
+global billing boundary. Other plugins and manual changes remain limitations.
+Free selection needs fresh zero input/output prices; unknown quota stays unknown.
+There is no runtime quota ledger or provider-side spending cap. The table below
+continues to describe the offline toolkit and existing OpenCode example.
+
 | Capability | Status | What actually runs | Evidence |
 |---|---|---|---|
 | Benchmark provenance + evidence coverage | **Enforced** (offline) | `scripts/score_models.py` rejects an observation with no `source` / `source_kind` / `benchmark_version` / `collected_on` / `conditions`; emits `insufficient evidence` instead of a tier below `--min-coverage` | `scripts/check.sh`, `schema/scored.schema.json` |

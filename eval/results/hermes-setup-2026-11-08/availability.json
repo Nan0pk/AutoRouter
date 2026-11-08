@@ -1,0 +1,25 @@
+[
+  {
+    "id": "opencode-go/muse-spark-1.2-contributor",
+    "available": false,
+    "reason": "Provider rejected this model/account/harness (HTTP 403)"
+  },
+  {
+    "id": "opencode-go/muse-spark-1.3-contributor",
+    "available": false,
+    "reason": "Provider rejected this model/account/harness (HTTP 403)"
+  },
+  {
+    "id": "opencode-go/gpt-6-luna",
+    "available": false,
+    "reason": "Provider rejected this model/account/harness (HTTP 400)"
+  },
+  {
+    "id": "opencode-go/claude-haiku-5-5",
+    "available": true
+  },
+  {
+    "id": "opencode-go/deepseek-v4.1-flash",
+    "available": true
+  }
+]

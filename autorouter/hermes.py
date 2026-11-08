@@ -145,7 +145,12 @@ def native_plugin_check():
     from providers import get_provider_profile
     backends = [{"name": b.name, "available": b.available} for b in list_backends()]
     bridge = get_provider_profile("autorouter-opencode-go")
-    return {"backends": backends, "go_bridge": bool(bridge),
+    from hermes_cli.auth import resolve_provider
+    try:
+        bridge_known = resolve_provider("autorouter-opencode-go") == "autorouter-opencode-go"
+    except Exception:
+        bridge_known = False
+    return {"backends": backends, "go_bridge": bool(bridge), "bridge_known": bridge_known,
             "loaded": "autorouter" in get_plugin_manager()._plugins}
 
 
@@ -166,7 +171,7 @@ def native_render_config(payload):
     model.pop("auth_mode", None)
     for key in ("fallback_models", "fallback_providers", "fallback_chain"):
         config[key] = []
-    config["fallback_model"] = ""
+    config["fallback_model"] = []
     config["smart_model_routing"] = {"enabled": False}
     delegation = config.setdefault("delegation", {})
     delegation.update(backend="autorouter", provider=row["runtime_provider"], model=row["model"],

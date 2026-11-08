@@ -1,0 +1,51 @@
+{
+  "configured": true,
+  "routing_verified": true,
+  "handoff_verified": true,
+  "observed_models": [
+    "opencode-go/claude-haiku-5-5",
+    "opencode-go/deepseek-v4.1-flash"
+  ],
+  "parent_session": "local-dad264a2fb3b99a492f2f5359f551ec7d69e60acc2f1ece59069b14806169716",
+  "child_session": "20261108_235205_b857d5",
+  "api_calls": 3,
+  "result_sha256": "169ce054575cf63a8311ab0eece312d39b99f4a685bccd9dcb69fa054c1e3215",
+  "usage": {
+    "estimated_cost_usd": 0.0,
+    "cost_status": "unknown",
+    "cost_source": "none",
+    "input_tokens": 6858,
+    "output_tokens": 245,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 6835,
+    "reasoning_tokens": 0,
+    "total_tokens": 7103,
+    "api_calls": 2,
+    "model": "claude-haiku-5-5",
+    "provider": "autorouter-opencode-go",
+    "session_id": "local-dad264a2fb3b99a492f2f5359f551ec7d69e60acc2f1ece59069b14806169716",
+    "completed": true,
+    "partial": false,
+    "interrupted": false,
+    "turn_exit_reason": "text_response(finish_reason=stop)",
+    "failed": false,
+    "service_tier": null,
+    "auxiliary": {
+      "api_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 0,
+      "estimated_cost_usd": 0,
+      "total_tokens": 0,
+      "by_task": {}
+    },
+    "total_including_auxiliary": {
+      "estimated_cost_usd": 0.0,
+      "total_tokens": 7103,
+      "api_calls": 2
+    }
+  },
+  "checked_at": 1794163930.1751087
+}

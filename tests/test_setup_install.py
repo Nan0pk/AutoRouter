@@ -47,6 +47,14 @@ class Install(unittest.TestCase):
         self.assertEqual(plugin.read_text(), "# later user edit\n")
         self.assertEqual(status(self.home)["state"], "changed")
 
+    def test_python_runtime_caches_are_not_mistaken_for_user_edits(self):
+        install(self.home, self.policy, renderer=json_renderer)
+        cache = self.home/"plugins/autorouter/__pycache__"
+        cache.mkdir(); (cache/"__init__.cpython-314.pyc").write_bytes(b"compiled cache")
+        self.assertEqual(status(self.home)["state"], "configured_unverified")
+        undo(self.home)
+        self.assertEqual(self.config.read_bytes(), self.before)
+
     def test_partial_install_failure_rolls_back(self):
         from autorouter import install as module
         original = module.replace_path; count = 0
@@ -61,6 +69,21 @@ class Install(unittest.TestCase):
         self.assertEqual(self.config.read_bytes(), self.before)
         self.assertFalse((self.home/"plugins/autorouter").exists())
         self.assertFalse((self.home/"autorouter/transaction.json").exists())
+
+    def test_failed_undo_restores_the_installed_state(self):
+        from autorouter import install as module
+        install(self.home, self.policy, renderer=json_renderer)
+        before = self.config.read_bytes(); original = module.copy_path; failed = False
+        def fail(source, destination):
+            nonlocal failed
+            if destination == self.config and not failed:
+                failed = True
+                raise OSError("injected undo write error")
+            return original(source, destination)
+        with patch.object(module, "copy_path", side_effect=fail), self.assertRaises(OSError):
+            undo(self.home)
+        self.assertEqual(self.config.read_bytes(), before)
+        self.assertEqual(status(self.home)["state"], "configured_unverified")
 
     def test_symlink_and_foreign_destination_are_refused(self):
         self.config.unlink(); elsewhere = self.home/"elsewhere"; elsewhere.write_text("untouched")

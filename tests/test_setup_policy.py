@@ -7,6 +7,7 @@ from unittest.mock import patch
 from autorouter.policy import select_models
 from autorouter.credentials import opencode_credential
 from autorouter.hermes import go_metadata
+from autorouter.probe import select_usable
 
 
 def model(provider, name, billing="included", price=1, **changes):
@@ -74,6 +75,17 @@ class Selection(unittest.TestCase):
         self.rows[0].update(capability=999, capability_verified=False)
         p = select_models(self.inventory, "provider", providers=["go"])
         self.assertIn("provisional", " ".join(p["reasons"]).lower())
+
+    def test_rejected_account_models_are_removed_before_install(self):
+        seen = []
+        def probe(row):
+            seen.append(row["id"])
+            return {"available": row["id"] != "go/small", "reason": "provider rejected model"}
+        p = select_usable(self.inventory, "subscriptions", probe=probe)
+        self.assertNotIn("go/small", {r["id"] for r in p["models"]})
+        self.assertEqual(len(seen), len(set(seen)))
+        with self.assertRaises(ValueError):
+            select_usable(self.inventory, "models", models=["go/small", "go/large"], probe=probe)
 
 
 class Credentials(unittest.TestCase):
