@@ -266,9 +266,12 @@ eval and live quota reservation remain separate work.
 ### Repeat the pilot in Hermes
 
 The Hermes runner uses the same fixtures, checkpoints, and independent grader. It selects
-the active API key from an OpenCode v2 integration export in memory and passes that key
-to a disposable Hermes profile. It accepts only OpenCode Go model IDs and checks the
-model and provider in Hermes' usage report. OAuth and other credential types are rejected.
+the active credential from an OpenCode v2 integration export in memory. API keys and
+unexpired official Console device logins are supported. For OAuth, only the access token
+is forwarded, with the selected workspace header; the refresh token stays with OpenCode.
+Expired logins must be refreshed in OpenCode before running. Other credential types and
+Console origins are rejected. The runner accepts only OpenCode Go model IDs and checks
+the model and provider in Hermes' usage report.
 
 On the Linux host with the saved OpenCode account, use Hermes v0.23.0 or later and Bubblewrap.
 From the repository root:
@@ -286,8 +289,11 @@ and `--specialist` after the separator to select the exact same Go models as a p
 Both must be available to that account. Hermes uses its default effort for each model.
 
 The worker starts with a fresh profile, a file-only toolset, and no configured fallbacks.
-A resume must select the same account entry. The wrapper does not save the exported
-key or print it in the report. For a custom Hermes installation, provide `--hermes`
+It uses the official Go inference endpoint. Current standard source installs reuse the
+selected dependency environment read-only, with lazy installation disabled; the normal
+Hermes profile is not mounted. A resume must select the same account entry and workspace.
+The wrapper does not save the exported credential or print it in the report.
+For a custom Hermes installation, provide `--hermes`
 and any additional trusted, read-only `--runtime-mount` paths before the separator.
 Mount the executable and its dependencies separately from credentials and user profiles.
 

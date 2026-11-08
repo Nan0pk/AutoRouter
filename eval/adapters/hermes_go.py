@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 PROVIDER = "opencode-go"
+BASE_URL = "https://opencode.ai/inference/go/openai/v1"
 
 
 def read_usage(path, model):
@@ -34,8 +35,8 @@ def read_usage(path, model):
     return {"tokens_in": tokens[0], "tokens_out": tokens[1], "trace": [f"{PROVIDER}/{model}"]}
 
 
-def check_version(binary, env):
-    result = subprocess.run([binary, "--version"], env=env, stdin=subprocess.DEVNULL,
+def check_version(command, env):
+    result = subprocess.run([*command, "--version"], env=env, stdin=subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                             text=True, errors="replace", timeout=15)
     version = re.search(r"\bv?(\d+)\.(\d+)\.(\d+)\b", result.stdout)
@@ -54,23 +55,30 @@ def main():
     if not key:
         raise RuntimeError("no OpenCode Go key was forwarded")
     binary = os.environ.get("AUTOROUTER_HERMES", "hermes")
+    command = json.loads(os.environ.get("AUTOROUTER_HERMES_RUNTIME", "null")) or [binary]
     prompt = sys.stdin.read()
     with tempfile.TemporaryDirectory(prefix="autorouter-hermes-") as directory:
         home = Path(directory)
         # JSON is a subset of YAML. Keep Hermes' normal profile out of the worker.
         (home / "config.yaml").write_text(json.dumps({
+            "model": {"base_url": BASE_URL, "default_headers": {
+                "User-Agent": "AutoRouter-Hermes-Pilot/1.0",
+                **({"x-opencode-org-id": os.environ["AUTOROUTER_HERMES_ORG_ID"]}
+                   if os.environ.get("AUTOROUTER_HERMES_ORG_ID") else {}),
+            }},
             "agent": {"max_turns": 12},
             "fallback_models": [],
             "terminal": {"backend": "local", "cwd": str(workdir)},
             "auxiliary": {"title_generation": {"enabled": False, "model_upgrade_enabled": False}},
         }), encoding="utf-8")
         env = {key: value for key, value in os.environ.items() if key in ("PATH", "LC_ALL")}
-        env.update(HOME=str(home), HERMES_HOME=str(home), HERMES_WRITE_SAFE_ROOT=str(workdir))
-        check_version(binary, env)
+        env.update(HOME=str(home), HERMES_HOME=str(home), HERMES_WRITE_SAFE_ROOT=str(workdir),
+                   HERMES_DISABLE_LAZY_INSTALLS="1")
+        check_version(command, env)
         env["OPENCODE_GO_API_KEY"] = key
         usage = home / "usage.json"
         process = subprocess.run(
-            [binary, "-z", prompt, "--provider", PROVIDER, "--model", model,
+            [*command, "-z", prompt, "--provider", PROVIDER, "--model", model,
              "--toolsets", "file", "--usage-file", str(usage)],
             cwd=workdir, env=env, stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
