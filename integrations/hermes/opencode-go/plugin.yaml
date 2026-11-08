@@ -1,0 +1,4 @@
+name: autorouter-opencode-go-provider
+kind: model-provider
+version: 0.1.0
+description: Reuse the selected local OpenCode Console login without copying tokens.

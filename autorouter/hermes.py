@@ -130,12 +130,25 @@ def native_discover():
     return {"providers": providers, "models": rows, "errors": errors, "discovered_at": time.time()}
 
 
+def native_plugin_check():
+    from hermes_cli.plugins import discover_plugins, get_plugin_manager
+    discover_plugins()
+    from agent.delegation_backends import list_backends
+    from providers import get_provider_profile
+    backends = [{"name": b.name, "available": b.available} for b in list_backends()]
+    bridge = get_provider_profile("autorouter-opencode-go")
+    return {"backends": backends, "go_bridge": bool(bridge),
+            "loaded": "autorouter" in get_plugin_manager()._plugins}
+
+
 if __name__ == "__main__":
     try:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             payload = json.load(sys.stdin)
             if sys.argv[1] == "discover":
                 result = native_discover()
+            elif sys.argv[1] == "plugin_check":
+                result = native_plugin_check()
             else:
                 raise ValueError("Unknown Hermes helper action")
         print(json.dumps(result, allow_nan=False))
