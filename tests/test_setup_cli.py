@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SetupCommand(unittest.TestCase):
     def test_interactive_menu_accepts_each_choice(self):
-        values = ["subscriptions", "provider", "models", "free"]
+        values = ["all", "provider", "models", "free"]
         for number,expected in enumerate(values, 1):
             self.assertEqual(choose("Choose: ", values, lambda _: str(number)), expected)
         with self.assertRaisesRegex(ValueError, "No connected"):
@@ -40,12 +40,15 @@ class SetupCommand(unittest.TestCase):
             rows = [model("go", "small"), model("go", "large", price=2),
                     model("free", "small", "free", 0), model("free", "large", "free", 0)]
             inventory.write_text(json.dumps({"models": rows, "providers": [{"id": "go"}, {"id": "free"}]}))
-            for mode,extra in (("subscriptions", []), ("provider", ["--provider", "go"]),
+            for mode,extra in (("all", []), ("subscriptions", []), ("provider", ["--provider", "go"]),
                                ("models", ["--model", "go/small", "--model", "go/large"]), ("free", [])):
                 p = self.run_cli("setup", "hermes", "--mode", mode, "--dry-run", "--inventory", str(inventory), "--home", str(home), *extra)
                 self.assertEqual(p.returncode, 0, p.stderr)
                 self.assertIn("Routine:", p.stdout)
                 self.assertIn("Specialist:", p.stdout)
+                if mode in ("all", "subscriptions"):
+                    self.assertIn("AutoRouter-All", p.stdout)
+                    self.assertIn("Routine: free/", p.stdout)
                 self.assertFalse(home.exists())
 
     def test_inventory_cannot_authorize_installing_fake_free_pricing(self):

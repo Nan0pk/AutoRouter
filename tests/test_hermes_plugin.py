@@ -55,7 +55,7 @@ class PluginRouting(unittest.TestCase):
         self.assertIsNone(self.router.llm_request(request={"tools": self.tools}, session_id="one", turn_id="next"))
 
     def test_free_rows_expire_from_original_catalog_time_in_every_mode(self):
-        for mode in ("provider", "models", "free"):
+        for mode in ("all", "provider", "models", "free"):
             rows = [model("free", "one", "free", 0), model("free", "two", "free", 0)]
             kwargs = {"providers": ["free"]} if mode == "provider" else {"models": [r["id"] for r in rows]} if mode == "models" else {}
             policy = select_models({"models": rows}, mode, **kwargs)

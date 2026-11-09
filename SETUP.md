@@ -20,8 +20,8 @@ any changes. The older OpenCode examples remain separate.
 
 ## Four choices
 
-1. **Existing subscription allowances** — use connected providers whose included
-   allowance can be established. This is the default.
+1. **AutoRouter-All** — consider all eligible models across connected providers:
+   existing paid subscription allowances and verified free models. This is the default.
 2. **One provider** — choose a connected provider and use eligible models from it.
 3. **Individual models** — select exact `provider/model` IDs across providers.
 4. **Free models only** — both published input/output prices must be zero, with
@@ -31,8 +31,10 @@ Any selected free model expires with its original catalog snapshot, including
 free models picked through the one-provider or individual-model choices. Rerun
 setup to refresh pricing before continuing.
 
-All modes exclude additional paid/unknown inference routes by default. An
-included subscription allowance is different from a free model. Free mode
+All modes exclude additional paid/unknown inference routes by default. AutoRouter-All
+combines included subscription allowances and free models in one candidate pool;
+it excludes reported exhausted quotas, inaccessible models and unsupported tools.
+Unknown quota remains unknown, rather than being presented as available quota. Free mode
 concerns model inference, not unrelated paid tools such as image generation.
 No provider-side spending cap is claimed, and there is no extra paid-spending
 mode in this release.
@@ -52,7 +54,7 @@ length are not benchmark scores. The illustrative CSVs are not used as rankings.
 ```bash
 python3 scripts/setup_autorouter.py inspect hermes
 python3 scripts/setup_autorouter.py setup hermes --dry-run
-python3 scripts/setup_autorouter.py setup hermes --mode subscriptions --yes
+python3 scripts/setup_autorouter.py setup hermes --mode all --yes
 python3 scripts/setup_autorouter.py setup hermes --mode provider --provider opencode-go --yes
 python3 scripts/setup_autorouter.py setup hermes --mode models \
   --model opencode-go/claude-haiku-5-5 \
@@ -66,6 +68,8 @@ python3 scripts/setup_autorouter.py undo hermes
 `--home /path/to/profile` selects a Hermes profile directory; otherwise setup
 uses `HERMES_HOME` or `~/.hermes`. Discovery uses that profile's Hermes logins;
 the existing external OpenCode login can also be reused without importing it.
+The old `--mode subscriptions` spelling remains an alias for `--mode all` and
+uses the same combined pool.
 
 `--confirm-allowance PROVIDER` records **your assertion** of included allowance
 when the provider cannot report billing. It does not discover a plan or prevent

@@ -3,7 +3,13 @@ import math
 import time
 
 MAX_CATALOG_AGE = 86400
-MODES = ("subscriptions", "provider", "models", "free")
+MODES = ("all", "provider", "models", "free")
+PROFILE_NAMES = {"all": "AutoRouter-All", "provider": "AutoRouter-Provider",
+                 "models": "AutoRouter-Selected", "free": "AutoRouter-Free"}
+
+
+def normalize_mode(mode):
+    return "all" if mode == "subscriptions" else mode
 
 
 def price(value):
@@ -25,8 +31,9 @@ def depleted(row):
 
 
 def select_models(inventory, mode, providers=(), models=(), confirmed_allowances=()):
+    mode = normalize_mode(mode)
     if mode not in MODES:
-        raise ValueError("Choose subscriptions, provider, models, or free")
+        raise ValueError("Choose all, provider, models, or free")
     if mode == "provider" and len(set(providers)) != 1:
         raise ValueError("Choose exactly one connected provider")
     if mode == "models" and not models:
@@ -52,8 +59,6 @@ def select_models(inventory, mode, providers=(), models=(), confirmed_allowances
         elif mode == "free" or row.get("billing") == "free":
             if not free_row_valid(row, now):
                 reason = "fresh verified zero input/output prices required"
-            elif mode == "subscriptions":
-                reason = "this mode selects included subscription allowances"
         elif row.get("billing") not in ("included", "free") and not (
             row.get("billing") == "unknown" and row["provider"] in confirmed_allowances
         ):
@@ -75,7 +80,7 @@ def select_models(inventory, mode, providers=(), models=(), confirmed_allowances
         return (verified, row.get("capability", 0) if verified else 0, row.get("reasoning") is True)
     specialist = max(others, key=strength)
     evidence = any(r.get("capability_verified") is True for r in selected)
-    return {"version": 1, "mode": mode, "created_at": now, "models": selected,
+    return {"version": 1, "mode": mode, "name": PROFILE_NAMES[mode], "created_at": now, "models": selected,
             "routine": routine["id"], "specialist": specialist["id"], "excluded": excluded,
             "allowance_assertions": [{"provider": p, "source": "user assertion", "confirmed_at": now}
                                      for p in confirmed_allowances],

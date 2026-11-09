@@ -58,8 +58,9 @@ class Selection(unittest.TestCase):
         self.inventory = {"models": self.rows}
 
     def test_four_modes_and_provider_scoped_ids(self):
-        p = select_models(self.inventory, "subscriptions")
-        self.assertEqual({r["provider"] for r in p["models"]}, {"go", "other"})
+        p = select_models(self.inventory, "all")
+        self.assertEqual(p["name"], "AutoRouter-All")
+        self.assertEqual({r["provider"] for r in p["models"]}, {"go", "other", "free"})
         p = select_models(self.inventory, "provider", providers=["go"])
         self.assertEqual({r["provider"] for r in p["models"]}, {"go"})
         p = select_models(self.inventory, "models", models=["go/small", "other/large"])
@@ -68,14 +69,22 @@ class Selection(unittest.TestCase):
         self.assertEqual({r["provider"] for r in p["models"]}, {"free"})
         self.assertNotEqual(p["routine"], p["specialist"])
 
+    def test_legacy_subscriptions_mode_uses_the_same_all_model_pool(self):
+        p = select_models(self.inventory, "subscriptions")
+        self.assertEqual(p["mode"], "all")
+        self.assertEqual(p["name"], "AutoRouter-All")
+        self.assertEqual({r["id"] for r in p["models"]},
+                         {r["id"] for r in self.rows if r["billing"] in ("included", "free")})
+
     def test_paid_unknown_stale_and_exhausted_are_excluded(self):
         self.rows += [model("bad", "old", "free", 0, fetched_at=0),
                       model("bad", "bool", "free", False), model("bad", "negative", "free", -1),
                       model("bad", "missing", "free", None), model("bad", "nan", "free", float("nan")),
                       model("bad", "exhausted", quota={"windows": [{"used_percent": 100}]}),
+                      model("bad", "free-exhausted", "free", 0, quota={"windows": [{"used_percent": 100}]}),
                       model("bad", "notools", tools=False)]
         self.rows += [model("bad", "harness", harness_supported=False)]
-        for mode in ("subscriptions", "free"):
+        for mode in ("all", "subscriptions", "free"):
             p = select_models(self.inventory, mode)
             self.assertFalse(any(r["provider"] in ("bad", "paid", "unknown") for r in p["models"]))
 

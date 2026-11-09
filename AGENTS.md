@@ -9,7 +9,8 @@ Honor narrower provider or budget instructions; avoid redundant confirmations.
 - Hermes is supported. Reject other harness names clearly; an example config
   or eval runner is not an installed integration.
 - Inspect connected sources without printing credential values. Prefer
-  `subscriptions`; honor one-provider, exact-model or free-only requests.
+  `all` (AutoRouter-All: included subscriptions plus verified free models);
+  honor one-provider, exact-model or free-only requests.
   Ask only for a missing choice that changes the result.
 - Unattended setup needs `--mode ... --yes`. Never use `--confirm-allowance`
   without the user's actual allowance assertion. Unknown billing is not free.

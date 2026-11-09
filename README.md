@@ -22,7 +22,8 @@ The point is not a specific config — it's a **reproducible process** you can r
 
 **Want a working setup first?** Run `python3 scripts/setup_autorouter.py setup hermes`,
 or ask an assistant in this repo to **“set up AutoRouter in Hermes.”** Choose
-existing allowances, one provider, exact models, or published zero-price models.
+**AutoRouter-All** (existing subscription allowances plus verified free models),
+one provider, exact models, or free models only.
 Setup installs native routing and checks a real two-model handoff. See
 [SETUP.md](SETUP.md) for preview, status, verification, undo and limits. Hermes
 is the first target of this command; other harness names are unsupported.

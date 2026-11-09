@@ -8,8 +8,10 @@ The accepted user direction is to plan, critique, amend, and proceed without
 another approval checkpoint. Implement inline in a separate worktree.
 
 ## User choices
-Offer four modes, defaulting to subscriptions/included allowance:
-1. All connected providers with an included allowance.
+Offer four modes, defaulting to AutoRouter-All (`all`): existing subscription
+allowances plus verified free models across connected providers. The earlier
+`subscriptions` CLI spelling remains a compatible alias for this combined pool.
+1. AutoRouter-All: all connected providers' included allowances and verified free models.
 2. One selected connected provider.
 3. Individually selected models across connected providers.
 4. Verified zero-price models only; no paid/unknown fallback.

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .hermes import discover
 from .install import install, status, undo
-from .policy import MODES, select_models
+from .policy import MODES, normalize_mode, select_models
 
 
 def choose(prompt, values, reader=input):
@@ -28,7 +28,8 @@ def main(argv=None):
     parser.add_argument("command", choices=("setup", "inspect", "status", "verify", "undo"))
     parser.add_argument("harness")
     parser.add_argument("--home", type=Path, help="Hermes profile directory (defaults to the current Hermes home)")
-    parser.add_argument("--mode", choices=MODES)
+    parser.add_argument("--mode", type=normalize_mode, choices=MODES,
+                        help="all includes subscriptions and verified free models; subscriptions remains an alias for all")
     parser.add_argument("--provider", action="append", default=[])
     parser.add_argument("--model", action="append", default=[])
     parser.add_argument("--confirm-allowance", action="append", default=[], help="Record your assertion that this provider has included allowance")
@@ -60,10 +61,10 @@ def main(argv=None):
             print(json.dumps(inventory, indent=2)); return 0
         mode = args.mode
         if mode is None and interactive:
-            labels = ["Existing subscription allowances", "One provider", "Pick individual models", "Free models only"]
+            labels = ["AutoRouter-All — subscriptions and free models", "One provider", "Pick individual models", "Free models only"]
             choice = choose("Choose model sources [1]: ", labels)
             mode = MODES[labels.index(choice)]
-        mode = mode or "subscriptions"
+        mode = mode or "all"
         providers = args.provider; models = args.model
         if mode == "provider" and not providers and interactive:
             providers = [choose("Choose provider: ", [p["id"] for p in inventory["providers"]])]
@@ -75,7 +76,7 @@ def main(argv=None):
         if not args.dry_run and not args.offline:
             from .probe import select_usable
             policy = select_usable(inventory, mode, providers, models, args.confirm_allowance)
-        print(f"Routine: {policy['routine']}\nSpecialist: {policy['specialist']}")
+        print(f"Profile: {policy['name']}\nRoutine: {policy['routine']}\nSpecialist: {policy['specialist']}")
         for reason in policy["reasons"]:
             print(reason)
         print("Selected model quota:")
