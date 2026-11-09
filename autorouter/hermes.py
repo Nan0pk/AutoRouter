@@ -176,13 +176,56 @@ def native_plugin_check():
     from providers import get_provider_profile
     backends = [{"name": b.name, "available": b.available} for b in list_backends()]
     bridge = get_provider_profile("autorouter-opencode-go")
+    routing = get_provider_profile("autorouter")
     from hermes_cli.auth import resolve_provider
     try:
         bridge_known = resolve_provider("autorouter-opencode-go") == "autorouter-opencode-go"
     except Exception:
         bridge_known = False
     return {"backends": backends, "go_bridge": bool(bridge), "bridge_known": bridge_known,
+            "picker_models": routing.fetch_models() if routing else [],
+            "wire_model": routing.build_api_kwargs_extras(model=routing.fallback_models[0])[1]["model"] if routing else None,
             "loaded": "autorouter" in get_plugin_manager()._plugins}
+
+
+def native_picker_check():
+    from hermes_cli.plugins import discover_plugins
+    discover_plugins()
+    from hermes_cli.inventory import build_model_options_payload, load_picker_context
+    from hermes_cli.model_switch import switch_model
+    context = load_picker_context()
+    payload = build_model_options_payload(context, include_unconfigured=False)
+    row = next((r for r in payload["providers"] if r.get("slug") == "autorouter"), None)
+    from .plugin import read_policy
+    from .model_provider import model_name
+    name = model_name(read_policy())
+    selection = switch_model(raw_input=name, explicit_provider="autorouter", is_global=False,
+                             current_provider=context.current_provider, current_model=context.current_model,
+                             current_base_url=context.current_base_url, current_api_key="",
+                             user_providers=context.user_providers, custom_providers=context.custom_providers)
+    return {"provider": "autorouter", "models": row.get("models", []) if row else [],
+            "selected_model": selection.new_model, "selection_succeeded": selection.success,
+            "selection_error": selection.error_message if not selection.success else None}
+
+
+def native_probe(row):
+    from hermes_cli.runtime_provider import resolve_runtime_provider
+    from agent.auxiliary_client import resolve_provider_client
+    try:
+        route = resolve_runtime_provider(requested=row["runtime_provider"], target_model=row["model"])
+        client, actual = resolve_provider_client(
+            row["runtime_provider"], model=row["model"], main_runtime=route,
+            explicit_base_url=route["base_url"], explicit_api_key=route["api_key"], api_mode=route["api_mode"])
+        if client is None or actual != row["model"]:
+            return {"available": False, "reason": "Native provider could not open the pinned model"}
+        client.chat.completions.create(model=actual, messages=[{"role": "user", "content": "Reply OK."}],
+                                       max_tokens=1, timeout=30)
+        return {"available": True}
+    except Exception as exc:
+        status = getattr(exc, "status_code", None)
+        if status in (400, 401, 402, 403, 404):
+            return {"available": False, "reason": f"Native provider rejected the pinned model (HTTP {status})"}
+        raise ValueError("Native provider availability check failed; check the saved login and connection") from None
 
 
 def native_render_config(payload):
@@ -193,12 +236,22 @@ def native_render_config(payload):
     if not isinstance(config, dict):
         raise ValueError("Hermes configuration must be a mapping")
     policy = payload["policy"]
+    from providers import get_provider_profile
+    from .model_provider import make_profile
+    routine = next(r for r in policy["models"] if r["id"] == policy["routine"])
+    base = get_provider_profile(routine["runtime_provider"])
+    if base is None and routine["runtime_provider"] == "autorouter-opencode-go":
+        base = get_provider_profile("opencode-go")
+    if base is None:
+        raise ValueError("The configured routine provider is unavailable")
+    make_profile(policy, base)  # reject unsupported routine transports before any activation
     config["_config_version"] = read_config_version_stamp()[1]
     row = next(r for r in policy["models"] if r["id"] == policy["routine"])
+    from .model_provider import model_name
     model = config.setdefault("model", {})
     if not isinstance(model, dict):
         raise ValueError("Hermes model configuration must be a mapping")
-    model.update(provider=row["runtime_provider"], default=row["model"], base_url="", api_key="", default_headers={})
+    model.update(provider="autorouter", default=model_name(policy), base_url="", api_key="", default_headers={})
     model.pop("auth_mode", None)
     for key in ("fallback_models", "fallback_providers", "fallback_chain"):
         config[key] = []
@@ -242,6 +295,10 @@ if __name__ == "__main__":
                 result = native_discover()
             elif sys.argv[1] == "plugin_check":
                 result = native_plugin_check()
+            elif sys.argv[1] == "picker_check":
+                result = native_picker_check()
+            elif sys.argv[1] == "probe":
+                result = native_probe(payload)
             elif sys.argv[1] == "render_config":
                 result = native_render_config(payload)
             else:

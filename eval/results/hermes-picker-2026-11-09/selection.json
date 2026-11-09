@@ -1,0 +1,88 @@
+{
+  "profile": "AutoRouter-All",
+  "mode": "all",
+  "routine": "opencode-go/claude-haiku-5-5",
+  "specialist": "opencode-go/deepseek-v4.1-flash",
+  "eligible_models": 24,
+  "billing_categories": {
+    "included": 24
+  },
+  "availability_checks": [
+    {
+      "id": "huggingface/zai-org/GLM-4.7-Flash",
+      "available": false,
+      "reason": "Native provider rejected the pinned model (HTTP 402)"
+    },
+    {
+      "id": "opencode-go/muse-spark-1.2-contributor",
+      "available": false,
+      "reason": "Provider rejected this model/account/harness (HTTP 403)"
+    },
+    {
+      "id": "opencode-go/muse-spark-1.3-contributor",
+      "available": false,
+      "reason": "Provider rejected this model/account/harness (HTTP 403)"
+    },
+    {
+      "id": "opencode-go/gpt-6-luna",
+      "available": false,
+      "reason": "Provider rejected this model/account/harness (HTTP 400)"
+    },
+    {
+      "id": "opencode-go/claude-haiku-5-5",
+      "available": true,
+      "usage": {
+        "prompt_tokens": 14,
+        "completion_tokens": 1,
+        "total_tokens": 15,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost": 0,
+        "opencode": {
+          "billing_source": "go",
+          "list_cost": 1.9e-06,
+          "allowance": 7.6e-06,
+          "tokens": {
+            "input": 14,
+            "output": 1,
+            "reasoning": 0,
+            "cache_read": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "opencode-go/deepseek-v4.1-flash",
+      "available": true,
+      "usage": {
+        "prompt_tokens": 33,
+        "completion_tokens": 1,
+        "total_tokens": 34,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1
+        },
+        "cost": 0,
+        "opencode": {
+          "billing_source": "go",
+          "list_cost": 5.55e-06,
+          "allowance": 3.33e-06,
+          "tokens": {
+            "input": 33,
+            "output": 1,
+            "reasoning": 1,
+            "cache_read": 0,
+            "cache_write_5m": 0,
+            "cache_write_1h": 0
+          }
+        }
+      }
+    }
+  ]
+}

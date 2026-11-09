@@ -15,6 +15,14 @@ Setup normalizes auxiliary/fallback settings, with private backups for undo.
 Live verification observes actual API models, usage and parent/child result
 return; a skipped specialist cannot pass.
 
+The installed profile is selectable as **AutoRouter → AutoRouter-All** by
+default. Verification checks the shared picker inventory and native model
+selection as well as the live handoff. The virtual model keeps its visible name;
+the native Chat Completions request carries the pinned routine model. Client
+construction pins the saved login, endpoint and account headers, and preserves
+the raw response model. Other routine transports are rejected before activation.
+Ordinary manual model selection disables automatic root routing.
+
 Hermes hooks/middleware can fail open on unexpected errors, so this is not a
 global billing boundary. Other plugins and manual changes remain limitations.
 Free selection needs fresh zero input/output prices; unknown quota stays unknown.

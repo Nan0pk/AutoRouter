@@ -1,0 +1,16 @@
+{
+  "source": "running Hermes gateway model.options",
+  "models": [
+    "AutoRouter-All"
+  ],
+  "listed": true,
+  "selection": {
+    "provider": "autorouter",
+    "models": [
+      "AutoRouter-All"
+    ],
+    "selected_model": "AutoRouter-All",
+    "selection_succeeded": true,
+    "selection_error": null
+  }
+}

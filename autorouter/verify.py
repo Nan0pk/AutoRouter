@@ -25,7 +25,10 @@ def evaluate_handoff(policy, events, usage, output):
     routine = rows[policy["routine"]]; specialist = rows[policy["specialist"]]
     if not output.strip() or usage.get("completed") is not True or any(usage.get(k) for k in ("failed", "partial", "interrupted")) or not tokens(usage):
         raise ValueError("Hermes did not complete a usable parent turn")
-    if usage.get("provider") != routine["runtime_provider"] or usage.get("model") != routine["model"]:
+    picker = policy.get("picker_model")
+    root_provider = "autorouter" if picker else routine["runtime_provider"]
+    root_model = picker or routine["model"]
+    if usage.get("provider") != root_provider or usage.get("model") != root_model:
         raise ValueError("Parent usage did not confirm the configured model")
     digest = hashlib.sha256(output.strip().encode()).hexdigest()
     stops = [e for e in events if e.get("event") == "child_stop" and e.get("child_status") in ("completed", "success", "ok") and e.get("result_sha256") == digest]
@@ -38,9 +41,9 @@ def evaluate_handoff(policy, events, usage, output):
         calls = [e for e in events if e.get("event") == "api" and e.get("session_id") in (root, child)]
         root_calls = [e for e in calls if e.get("session_id") == root]
         child_calls = [e for e in calls if e.get("session_id") == child and e.get("parent_session_id") == root]
-        def valid(call, row):
-            return call.get("provider") == row["runtime_provider"] and call.get("model") == row["model"] and call.get("response_model") == row["model"] and tokens(call.get("usage"))
-        if root_calls and child_calls and all(valid(e, routine) for e in root_calls) and all(valid(e, specialist) for e in child_calls):
+        def valid(call, row, provider=None, model=None):
+            return call.get("provider") == (provider or row["runtime_provider"]) and call.get("model") == (model or row["model"]) and call.get("response_model") == row["model"] and tokens(call.get("usage"))
+        if root_calls and child_calls and all(valid(e, routine, root_provider, root_model) for e in root_calls) and all(valid(e, specialist) for e in child_calls):
             return {"configured": True, "routing_verified": True, "handoff_verified": True,
                     "observed_models": [policy["routine"], policy["specialist"]],
                     "parent_session": root, "child_session": child, "api_calls": len(calls),
@@ -66,6 +69,11 @@ def verify_install(home, live=False):
     check = worker("plugin_check", home=home)
     if not check["loaded"] or {"name": "autorouter", "available": True} not in check["backends"]:
         raise ValueError("Hermes did not load the installed AutoRouter backend")
+    if policy.get("picker_model"):
+        picker = worker("picker_check", home=home)
+        if (policy["picker_model"] not in picker["models"] or not picker["selection_succeeded"]
+                or picker["selected_model"] != policy["picker_model"]):
+            raise ValueError("Hermes did not expose a selectable AutoRouter model in its picker")
     if not live:
         return {"configured": True, "routing_verified": False, "handoff_verified": False,
                 "reason": "Live inference was not requested"}
@@ -97,6 +105,9 @@ def verify_install(home, live=False):
                 log.seek(offset)
                 events = [json.loads(line) for line in log if line.strip()]
             report = evaluate_handoff(policy, events, usage, process.stdout)
+            if policy.get("picker_model"):
+                report["picker_model"] = policy["picker_model"]
+                report["picker_verified"] = True
     except subprocess.TimeoutExpired:
         raise ValueError("Hermes live handoff check timed out; installation remains unverified") from None
     with locked(home):

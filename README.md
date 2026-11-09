@@ -24,8 +24,9 @@ The point is not a specific config — it's a **reproducible process** you can r
 or ask an assistant in this repo to **“set up AutoRouter in Hermes.”** Choose
 **AutoRouter-All** (existing subscription allowances plus verified free models),
 one provider, exact models, or free models only.
-Setup installs native routing and checks a real two-model handoff. See
-[SETUP.md](SETUP.md) for preview, status, verification, undo and limits. Hermes
+Setup installs native routing and checks a real two-model handoff.
+After setup, select **AutoRouter → AutoRouter-All** in Hermes's model picker.
+See [SETUP.md](SETUP.md) for preview, status, verification, undo and limits. Hermes
 is the first target of this command; other harness names are unsupported.
 
 - **Capability × quota is the real objective.** A model is "best" only relative to how much of

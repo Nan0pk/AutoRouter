@@ -1,6 +1,8 @@
 import copy
 import json
+import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -32,6 +34,18 @@ class PluginRouting(unittest.TestCase):
         self.assertEqual(route["model"], "strong")
         self.assertEqual(route["fallback_providers"], [])
         self.assertEqual(args["tasks"][0]["route"], "routine")
+
+    def test_selecting_virtual_model_activates_routing(self):
+        self.router.pre_turn(session_id="one", turn_id="turn", model="AutoRouter-All",
+                             user_message="security vulnerability in authentication")
+        self.assertIsNotNone(self.router.llm_request(request={"tools": self.tools}, session_id="one", turn_id="turn"))
+
+    def test_physical_routine_model_selected_manually_disables_the_new_router(self):
+        router = Router({**self.policy, "picker_model": "AutoRouter-All"})
+        result = router.pre_turn(session_id="s", turn_id="t", model="small",
+                                 user_message="security vulnerability in authentication")
+        self.assertIn("manual", result["context"].lower())
+        self.assertIsNone(router.llm_request(request={"tools": self.tools}, session_id="s", turn_id="t"))
 
     def test_simple_manual_and_child_turns_do_not_force_delegation(self):
         self.turn("rename foo to bar")
@@ -106,4 +120,36 @@ class PluginRouting(unittest.TestCase):
             self.assertTrue(result["loaded"])
             self.assertTrue(result["go_bridge"])
             self.assertTrue(result["bridge_known"])
+            self.assertEqual(result["picker_models"], ["AutoRouter-All"])
+            self.assertEqual(result["wire_model"], "small")
             self.assertIn({"name": "autorouter", "available": True}, result["backends"])
+            source, python = runtime()
+            code = '''import sys,json,io,contextlib
+sys.path.insert(0,sys.argv[1])
+with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
+    import httpx
+    from unittest.mock import patch
+    from providers import get_provider_profile
+    profile=get_provider_profile("autorouter")
+    seen={}
+    def response(request):
+        seen["workspace"]=request.headers.get("x-opencode-org-id")
+        seen["model"]=json.loads(request.content)["model"]
+        return httpx.Response(200,json={"id":"test","object":"chat.completion","created":0,"model":"different-upstream-model",
+            "choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]})
+    with httpx.Client(transport=httpx.MockTransport(response)) as http:
+        route={"api_key":"fake-local-key","base_url":"https://example.invalid/v1","api_mode":"chat_completions"}
+        with patch("hermes_cli.runtime_provider.resolve_runtime_provider",return_value=route):
+            client=profile.create_client(api_key="AutoRouter-All",base_url="https://wrong.invalid",default_headers={"x-opencode-org-id":"wrong"},http_client=http)
+        body,top=profile.build_api_kwargs_extras(model="AutoRouter-All")
+        result=client.chat.completions.create(**top,messages=[{"role":"user","content":"ok"}],max_tokens=1)
+        assert seen == {"workspace":"workspace","model":"small"},seen
+        assert client.api_key == "fake-local-key"
+        assert result.model == "different-upstream-model",result.model
+print("pinned headers and raw response model preserved")
+'''
+            captured = subprocess.run([str(python), "-I", "-c", code, str(source)],
+                                      env={**os.environ, "HERMES_HOME": str(home), "HERMES_DISABLE_LAZY_INSTALLS": "1"},
+                                      capture_output=True, text=True, timeout=30)
+            self.assertEqual(captured.returncode, 0, captured.stderr)
+            self.assertIn("raw response model preserved", captured.stdout)

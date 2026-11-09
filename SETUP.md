@@ -15,6 +15,11 @@ Hermes integration, and checks a real two-model job. After successful setup,
 start Hermes normally. Start a new session (`/new`) to load the new delegation
 settings. Everyday use does not need a separate test runner.
 
+The Hermes model picker shows **AutoRouter → AutoRouter-All** after the default
+setup. Select that entry to enable automatic routing. Other setup modes publish
+AutoRouter-Provider, AutoRouter-Selected, or AutoRouter-Free. Only the installed
+profile is offered; setup chooses its model pool.
+
 Hermes is the first supported target. Other harness names are rejected before
 any changes. The older OpenCode examples remain separate.
 
@@ -83,7 +88,8 @@ no inference calls, although it can fetch read-only provider metadata.
 
 ## Normal Hermes behavior
 
-The routine model remains the main model. AutoRouter classifies each root
+The main model is the named AutoRouter profile; inference uses the configured
+routine model. AutoRouter classifies each root
 request using the existing local classifier. For complex/risky work, a native
 plugin requires `delegate_task` on the first model request and routes that child
 to the specialist. Hermes carries the task context and result. Children are
@@ -92,8 +98,9 @@ delegate a blocker to the specialist.
 
 The delegation backend accepts only the two configured role routes and supplies
 no fallback providers. A complex root cannot be downgraded by rewriting the
-delegated goal. A manual main-model selection disables automatic root routing
-and preserves that model.
+delegated goal. Selecting an ordinary model disables automatic root routing,
+including selecting the same physical routine model manually. Select the named
+AutoRouter model again to resume routing.
 
 Hermes hooks/middleware can fail open on unexpected plugin errors; this is not
 a global billing firewall. Setup normalizes configured main, auxiliary and
@@ -112,6 +119,15 @@ login expires/changes, refresh it in OpenCode and rerun setup.
 Hermes v0.23.0 or later and its existing source-install Python are required. No
 new Python dependencies are installed. Set `AUTOROUTER_HERMES_SOURCE` for a
 custom source checkout; current managed and older `venv`/`.venv` layouts work.
+The named picker currently requires a native Chat Completions routine provider;
+other routine transports are rejected before activation. Specialists still use
+their selected native providers. No cross-transport facade is claimed.
+
+Hermes's picker checks environment presence for API-key profiles, so the plugin
+sets a process-only `AUTOROUTER_ACTIVE_PROFILE` visibility marker. It is not a
+credential, is not written to disk, and is never sent to providers. The native
+credential resolver returns the pinned saved login or fails; it cannot fall
+back to the marker.
 
 Runtime files are copied into the profile's `plugins/`; moving this checkout
 later does not break the installed plugin. State and exact backups live under

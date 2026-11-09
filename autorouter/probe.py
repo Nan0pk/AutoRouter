@@ -9,9 +9,10 @@ from .credentials import GO_URL, NoRedirect, opencode_credential
 from .policy import select_models
 
 
-def probe_model(row):
+def probe_model(row, home=None):
     if row["runtime_provider"] != "autorouter-opencode-go":
-        return {"available": None, "reason": "Native model access will be checked by the installed handoff"}
+        from .hermes import worker
+        return worker("probe", row, home=home, timeout=60)
     credential = opencode_credential(row["auth_ref"]["binary"], row["auth_ref"])
     headers = {"Authorization": "Bearer "+credential["token"], "User-Agent": "AutoRouter-Setup/0.1",
                "x-opencode-session": "ses_"+uuid.uuid4().hex, "Content-Type": "application/json"}

@@ -74,8 +74,9 @@ def main(argv=None):
             models = [v.strip() for v in input("Choose exact model IDs, separated by commas: ").split(",") if v.strip()]
         policy = select_models(inventory, mode, providers, models, args.confirm_allowance)
         if not args.dry_run and not args.offline:
-            from .probe import select_usable
-            policy = select_usable(inventory, mode, providers, models, args.confirm_allowance)
+            from .probe import probe_model, select_usable
+            policy = select_usable(inventory, mode, providers, models, args.confirm_allowance,
+                                   probe=lambda row: probe_model(row, home=home))
         print(f"Profile: {policy['name']}\nRoutine: {policy['routine']}\nSpecialist: {policy['specialist']}")
         for reason in policy["reasons"]:
             print(reason)

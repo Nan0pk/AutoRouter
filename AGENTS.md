@@ -22,8 +22,9 @@ Honor narrower provider or budget instructions; avoid redundant confirmations.
 - Keep keys, refresh tokens, raw auth exports, private config backups and user
   prompts out of shared evidence. Use existing machine-local logins.
 - Preserve manually selected models; explain that a manual main model disables
-  automatic root routing. Normal routing resumes on a fresh session using the
-  configured main model.
+  automatic root routing. Select the named AutoRouter model to resume routing.
+  The default installed picker entry is AutoRouter → AutoRouter-All. Verify the
+  actual shared picker inventory and model selection as well as the handoff.
 
 Preserve user changes. Use focused checks, then `bash scripts/check.sh` and both
 CI schema validations. Never treat illustrative benchmark data as verified

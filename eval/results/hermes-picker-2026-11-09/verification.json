@@ -1,0 +1,53 @@
+{
+  "configured": true,
+  "routing_verified": true,
+  "handoff_verified": true,
+  "observed_models": [
+    "opencode-go/claude-haiku-5-5",
+    "opencode-go/deepseek-v4.1-flash"
+  ],
+  "parent_session": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+  "child_session": "20261109_182648_f55a5d",
+  "api_calls": 3,
+  "result_sha256": "76c52f43517f62f114b12cdcd9a379c71164242b293e4703b2ed216bdf7ae205",
+  "usage": {
+    "estimated_cost_usd": 0.0,
+    "cost_status": "unknown",
+    "cost_source": "none",
+    "input_tokens": 6752,
+    "output_tokens": 222,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 6729,
+    "reasoning_tokens": 0,
+    "total_tokens": 6974,
+    "api_calls": 2,
+    "model": "AutoRouter-All",
+    "provider": "autorouter",
+    "session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "completed": true,
+    "partial": false,
+    "interrupted": false,
+    "turn_exit_reason": "text_response(finish_reason=stop)",
+    "failed": false,
+    "service_tier": null,
+    "auxiliary": {
+      "api_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 0,
+      "estimated_cost_usd": 0,
+      "total_tokens": 0,
+      "by_task": {}
+    },
+    "total_including_auxiliary": {
+      "estimated_cost_usd": 0.0,
+      "total_tokens": 6974,
+      "api_calls": 2
+    }
+  },
+  "checked_at": 1794230815.9951136,
+  "picker_model": "AutoRouter-All",
+  "picker_verified": true
+}

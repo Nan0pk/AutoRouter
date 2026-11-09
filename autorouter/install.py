@@ -144,6 +144,8 @@ def render_config(text, policy):
 
 def install(home, policy, renderer=render_config):
     from .plugin import Router
+    from .model_provider import model_name
+    policy = {**policy, "picker_model": model_name(policy)}
     Router(policy)  # validate before writing anything
     home = Path(home).absolute()
     with locked(home) as state:

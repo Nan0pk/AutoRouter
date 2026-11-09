@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from .policy import free_row_valid
+from .model_provider import model_name
 
 try:
     from .classifier import classify
@@ -51,8 +52,9 @@ class Router:
     def pre_turn(self, session_id="", turn_id="", model="", user_message="", parent_session_id="", **kwargs):
         routine = self.rows[self.policy["routine"]]
         child = bool(parent_session_id)
-        manual = model not in (routine["model"], routine["id"])
-        active = [r for r in self.rows.values() if model in (r["model"], r["id"])]
+        virtual = model == model_name(self.policy)
+        manual = not virtual if self.policy.get("picker_model") else model not in (routine["model"], routine["id"]) and not virtual
+        active = [routine] if virtual else [r for r in self.rows.values() if model in (r["model"], r["id"])]
         if any(r.get("billing") == "free" and not free_row_valid(r) for r in active):
             return {"action": "block", "message": "AutoRouter free-price data expired. Rerun AutoRouter setup before continuing."}
         text = user_message if isinstance(user_message, str) else json.dumps(user_message)

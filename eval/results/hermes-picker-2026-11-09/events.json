@@ -1,0 +1,102 @@
+[
+  {
+    "event": "turn",
+    "at": 1794230798.4038563,
+    "session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "parent_session_id": "",
+    "turn_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:1627447f",
+    "model": "AutoRouter-All",
+    "state": "specialist"
+  },
+  {
+    "event": "api",
+    "at": 1794230803.7036264,
+    "session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "parent_session_id": "",
+    "turn_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:1627447f",
+    "task_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "model": "AutoRouter-All",
+    "provider": "autorouter",
+    "response_model": "claude-haiku-5-5",
+    "api_call_count": 1,
+    "usage": {
+      "input_tokens": 21,
+      "output_tokens": 193,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 3069,
+      "reasoning_tokens": 0,
+      "request_count": 1,
+      "prompt_tokens": 3090,
+      "total_tokens": 3283
+    }
+  },
+  {
+    "event": "child_start",
+    "at": 1794230808.8504755,
+    "parent_session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "child_session_id": "20261109_182648_f55a5d",
+    "parent_turn_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:1627447f"
+  },
+  {
+    "event": "turn",
+    "at": 1794230808.8753126,
+    "session_id": "20261109_182648_f55a5d",
+    "parent_session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "turn_id": "20261109_182648_f55a5d:sa-0-580b1642:29aa69bb",
+    "model": "deepseek-v4.1-flash",
+    "state": "child"
+  },
+  {
+    "event": "api",
+    "at": 1794230813.9980404,
+    "session_id": "20261109_182648_f55a5d",
+    "parent_session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "turn_id": "20261109_182648_f55a5d:sa-0-580b1642:29aa69bb",
+    "task_id": "sa-0-580b1642",
+    "model": "deepseek-v4.1-flash",
+    "provider": "autorouter-opencode-go",
+    "response_model": "deepseek-v4.1-flash",
+    "api_call_count": 1,
+    "usage": {
+      "input_tokens": 786,
+      "output_tokens": 71,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 47,
+      "request_count": 1,
+      "prompt_tokens": 786,
+      "total_tokens": 857
+    }
+  },
+  {
+    "event": "child_stop",
+    "at": 1794230814.0501227,
+    "parent_session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "child_session_id": "20261109_182648_f55a5d",
+    "child_status": "completed",
+    "parent_turn_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:1627447f",
+    "result_sha256": "76c52f43517f62f114b12cdcd9a379c71164242b293e4703b2ed216bdf7ae205"
+  },
+  {
+    "event": "api",
+    "at": 1794230815.8246324,
+    "session_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "parent_session_id": "",
+    "turn_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f:1627447f",
+    "task_id": "local-9990189c425418c6a49aa34bbdf0e57d7ac924ad28b7a8d7404e056b131dcd1f",
+    "model": "AutoRouter-All",
+    "provider": "autorouter",
+    "response_model": "claude-haiku-5-5",
+    "api_call_count": 2,
+    "usage": {
+      "input_tokens": 2,
+      "output_tokens": 29,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 3660,
+      "reasoning_tokens": 0,
+      "request_count": 1,
+      "prompt_tokens": 3662,
+      "total_tokens": 3691
+    }
+  }
+]
