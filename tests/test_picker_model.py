@@ -86,4 +86,3 @@ class PickerModel(unittest.TestCase):
             self.assertEqual(client["api_key"], "local-test-secret")
             self.assertEqual(client["base_url"], "https://provider.example/v1")
             self.assertEqual(client["default_headers"], {"account": "pinned", "session": "keep"})
-
